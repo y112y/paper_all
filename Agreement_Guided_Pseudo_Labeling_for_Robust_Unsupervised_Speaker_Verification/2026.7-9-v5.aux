@@ -1,0 +1,131 @@
+\relax 
+\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-A}}Contrastive Learning for Speaker Representation}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-B}}Self-Distillation for Speaker Representation Learning}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-C}}Pre-Trained Models for Unsupervised Speaker Verification}{2}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-D}}Ensemble Learning and Cross-Model Consensus}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {II-E}}Iterative Frameworks for Unsupervised Speaker Verification}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {III}Problem Formulation and Framework Overview}{3}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-A}}Problem Formulation}{3}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces {The overall architecture of the proposed CGPL framework. Steps 1--4 perform consensus-guided reliable pseudo-label construction using two speech pre-trained models, including cluster-label alignment, consensus-based reliable sample selection, and pseudo-label merging. Steps 5--6 conduct noise-robust utilization of consensus-selected and cross-view-disagreement samples through dynamic label-noise-aware supervision and hard-negative-based contrastive learning. }}}{4}{}\protected@file@percent }
+\newlabel{fig:frame}{{1}{4}{}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-B}}Framework Overview}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {III-C}}Base Iterative Learning Pipeline}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {III-C}1}Heterogeneous Ensemble Partition Generation}{4}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {III-C}2}Speaker Encoder and Iterative Refinement}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Consensus-Based Pseudo-Label Construction}{5}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-A}}Consensus-Guided Sample Selection}{5}{}\protected@file@percent }
+\newlabel{sec:agreement_selection}{{\mbox  {IV-A}}{5}{}{subsection.4.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {IV-B}}Pseudo-Label Merging}{6}{}\protected@file@percent }
+\newlabel{sec:plm}{{\mbox  {IV-B}}{6}{}{subsection.4.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Noise-Robust Utilization by Consensus Status}{6}{}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {1}{\ignorespaces \textbf  {CGPL:} Consensus-Guided Reliable Pseudo-Label Construction}}{6}{}\protected@file@percent }
+\newlabel{alg:agpl}{{1}{6}{}{algorithm.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-A}}Dynamic Label-Noise-Aware Supervision}{6}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {V-A}1}Global Confidence Schedule}{6}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {V-A}2}Sample-Level Posterior-Margin Confidence}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsubsection}{\numberline {\mbox  {V-A}3}Prediction-Margin-Weighted Auxiliary Objective}{7}{}\protected@file@percent }
+\@writefile{loa}{\contentsline {algorithm}{\numberline {2}{\ignorespaces Iterative Unsupervised Speaker Verification Training with Consensus-Guided Initialization}}{7}{}\protected@file@percent }
+\newlabel{alg:alg2}{{2}{7}{}{algorithm.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {V-B}}Contrastive Learning with Hard Negative Mining}{7}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {VI}Experimental Setup}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-A}}Datasets}{8}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VI-B}}Implementation Details}{8}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \centering  {EER\% performance on Vox1-O across different Transformer layers.}}}{9}{}\protected@file@percent }
+\newlabel{fig:Transformer_layers}{{2}{9}{}{figure.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Experimental Results}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-A}}Ensemble Member Configuration}{9}{}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-B}}Clustering Analysis}{9}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {I}{\ignorespaces Clustering quality of initial pseudo-label partitions generated by different clustering algorithms.}}{9}{}\protected@file@percent }
+\newlabel{tab:clustering}{{I}{9}{}{table.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-C}}First-Round Pseudo-Label Analysis}{9}{}\protected@file@percent }
+\newlabel{sec:first_round_analysis}{{\mbox  {VII-C}}{9}{}{subsection.7.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {II}{\ignorespaces Comparison of the proposed CGPL framework with representative single-stage unsupervised speaker verification methods in terms of EER (\%) on the Vox1-O, Vox1-E, and Vox1-H test sets.}}{10}{}\protected@file@percent }
+\newlabel{tab:single-stage comparison}{{II}{10}{}{table.2}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {III}{\ignorespaces Quality comparison of initial pseudo-label partitions.}}{10}{}\protected@file@percent }
+\newlabel{tab:first_round_metrics}{{III}{10}{}{table.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-D}}Verification Performance}{10}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {IV}{\ignorespaces Comparison of the proposed CGPL framework with representative multi-stage unsupervised speaker verification methods in terms of EER (\%) on the Vox1-O, Vox1-E, and Vox1-H test sets.}}{11}{}\protected@file@percent }
+\newlabel{tab:multi-stage comparison}{{IV}{11}{}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-E}}Iterative Pseudo-Label Refinement}{11}{}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {V}{\ignorespaces Detailed results for each iteration. All metrics are reported in B/A format, where B denotes the value before online pseudo-label refinement and A after offline pseudo-label refinement.}}{11}{}\protected@file@percent }
+\newlabel{tab:iteration}{{V}{11}{}{table.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {VI}{\ignorespaces Component-wise ablation results on Vox1-O in terms of EER (\%).}}{12}{}\protected@file@percent }
+\newlabel{tab:ablation}{{VI}{12}{}{table.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {\mbox  {VII-F}}Ablation Study and Contrastive Loss Analysis}{12}{}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \centering  {Effect of contrastive loss weight $\gamma $ on Vox1-O EER after the first training iteration.}}}{12}{}\protected@file@percent }
+\newlabel{fig:contrastive_loss}{{3}{12}{}{figure.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VIII}Conclusion}{12}{}\protected@file@percent }
+\citation{*}
+\bibstyle{unsrt}
+\bibdata{ref}
+\bibcite{r1}{1}
+\bibcite{r2}{2}
+\bibcite{r3}{3}
+\bibcite{r4}{4}
+\bibcite{r5}{5}
+\bibcite{r6}{6}
+\bibcite{r7}{7}
+\bibcite{r8}{8}
+\bibcite{r9}{9}
+\bibcite{r10}{10}
+\bibcite{r11}{11}
+\bibcite{r12}{12}
+\bibcite{r13}{13}
+\bibcite{r14}{14}
+\bibcite{r15}{15}
+\bibcite{r16}{16}
+\bibcite{r17}{17}
+\bibcite{r18}{18}
+\bibcite{r19}{19}
+\bibcite{r20}{20}
+\bibcite{r21}{21}
+\bibcite{r22}{22}
+\bibcite{r23}{23}
+\bibcite{r24}{24}
+\bibcite{r25}{25}
+\bibcite{r26}{26}
+\bibcite{r27}{27}
+\bibcite{r28}{28}
+\bibcite{r29}{29}
+\bibcite{r30}{30}
+\bibcite{r31}{31}
+\bibcite{r32}{32}
+\bibcite{r33}{33}
+\bibcite{r34}{34}
+\bibcite{r35}{35}
+\bibcite{r36}{36}
+\@writefile{toc}{\contentsline {section}{References}{13}{}\protected@file@percent }
+\bibcite{r37}{37}
+\bibcite{r38}{38}
+\bibcite{r39}{39}
+\bibcite{r40}{40}
+\bibcite{r41}{41}
+\bibcite{r42}{42}
+\bibcite{r43}{43}
+\bibcite{r44}{44}
+\bibcite{r45}{45}
+\bibcite{r46}{46}
+\bibcite{r47}{47}
+\bibcite{r48}{48}
+\bibcite{r49}{49}
+\bibcite{r50}{50}
+\bibcite{r51}{51}
+\bibcite{r52}{52}
+\bibcite{r53}{53}
+\bibcite{r54}{54}
+\bibcite{r55}{55}
+\bibcite{r56}{56}
+\bibcite{r57}{57}
+\bibcite{r58}{58}
+\bibcite{r59}{59}
+\bibcite{r60}{60}
+\bibcite{r61}{61}
+\bibcite{r62}{62}
+\bibcite{r63}{63}
+\bibcite{r64}{64}
+\bibcite{r65}{65}
+\bibcite{r66}{66}
+\bibcite{r67}{67}
+\gdef \@abspage@last{14}

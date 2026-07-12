@@ -1,0 +1,922 @@
+\documentclass[lettersize,journal]{IEEEtran}
+\usepackage{amsmath,amsfonts}
+\usepackage{algorithmic}
+\usepackage{algorithm}
+\usepackage{array}
+\usepackage[caption=false,font=normalsize,labelfont=sf,textfont=sf]{subfig}
+\usepackage{textcomp}
+\usepackage{stfloats}
+\usepackage{url}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{cite}
+\usepackage{multirow,array}
+\usepackage{amssymb}
+\usepackage{cite}
+\makeatletter
+\newcommand{\rmnum}[1]{\romannumeral #1} % 小写罗马数字
+\newcommand{\Rmnum}[1]{\expandafter\@slowromancap\romannumeral #1@} % 大写罗马数字
+
+\usepackage{dblfloatfix}
+\makeatother
+\usepackage{float}
+\usepackage{stfloats}
+\usepackage{placeins}
+\hyphenation{op-tical net-works semi-conduc-tor IEEE-Xplore}
+% updated with editorial comments 8/9/2021
+
+\begin{document}
+
+\title{Reliability-Aware Pseudo-Label Generation and Learning for Unsupervised Speaker Verification}
+
+\author{Heng Wu, Yishuang Li, Hongchen Pan, Lin Li~\IEEEmembership{Member,~IEEE}, and Qingyang Hong~\IEEEmembership{Member,~IEEE}
+        % <-this % stops a space
+% \thanks{This paper was produced by the IEEE Publication Technology Group. They are in Piscataway, NJ.}% <-this % stops a space
+% \thanks{Manuscript received April 19, 2021; revised August 16, 2021.}
+}
+
+% The paper headers
+\markboth{IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING,,~Vol.~1, No.~1, January ~2025}%
+{Shell \MakeLowercase{\textit{et al.}}: A Sample Article Using IEEEtran.cls for IEEE Journals}
+
+%\IEEEpubid{0000--0000/00\$00.00~\copyright~2021 IEEE}
+% Remember, if you use this you must call \IEEEpubidadjcol in the second
+% column for its text to clear the IEEEpubid mark.
+
+\maketitle
+
+\begin{abstract}
+Unsupervised speaker verification has attracted increasing attention due to its ability to leverage large-scale unlabeled speech data without expensive manual annotation. However, the performance of existing methods is fundamentally limited by the reliability of pseudo-labels, which are often corrupted by label noise and category fragmentation during iterative clustering. To address these challenges, we propose a High-Confidence Pseudo-Label (HCPL) generation and refinement framework for unsupervised speaker verification. The proposed framework is motivated by the observation that improving pseudo-label reliability is critical for stable and efficient unsupervised optimization. Specifically, HCPL first employs a dual pre-trained model filtering strategy to exploit complementary speaker representations for reliable pseudo-label selection while suppressing noisy label assignments. Subsequently, a label merging mechanism is introduced to alleviate category fragmentation and enhance pseudo-label consistency across clusters. Based on the refined pseudo-labels, we further design a joint optimization objective that integrates contrastive learning with hard negative mining for discriminative representation learning and a dynamic label correction loss for progressive pseudo-label refinement during training. Experimental evaluations on VoxCeleb2 demonstrate that the proposed framework converges within only three iterations and achieves an equal error rate (EER) of 1.01\% on VoxCeleb1-O. Compared with a recent state-of-the-art unsupervised method achieving 1.06\% EER, the proposed approach delivers superior verification performance while requiring substantially fewer iterations (3 versus 8). Furthermore, the proposed method approaches the performance of fully supervised training (0.94\% EER), highlighting the effectiveness of reliable pseudo-label refinement as an efficient alternative to costly manual annotation for unsupervised speaker verification.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Unsupervised speaker verification, pseudo-label refinement, contrastive learning, hard negative mining, pre-trained models.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{S}{peaker} verification aims to determine whether a given utterance belongs to a claimed speaker and has become a fundamental technology in a wide range of speech-based authentication applications. Benefiting from the rapid development of deep learning, deep neural network (DNN)-based methods and their variants [1]--[5] have substantially advanced the performance of speaker verification systems, significantly outperforming traditional approaches such as GMM-UBM [6] and i-vector [7]. Despite these advances, the success of modern speaker verification systems still relies heavily on large-scale annotated training data. In practice, although raw speech data can be collected at scale, accurate speaker labels are often unavailable and expensive to obtain because they typically require labor-intensive manual annotation or additional identity-related supervision. Consequently, the limited availability of high-quality labeled corpora has become a major bottleneck for further improving speaker verification systems, motivating increasing interest in unsupervised approaches that can effectively exploit large amounts of unlabeled speech data.
+
+\subsection{Unsupervised Speaker Verification}
+
+Unsupervised speaker verification has recently attracted increasing attention due to its ability to leverage large-scale unlabeled speech data without costly annotation. Inspired by contrastive learning frameworks developed in computer vision, such as SimCLR [8] and MoCo [9], prior studies have introduced contrastive learning strategies for speaker verification by constructing positive and negative sample pairs [10]--[14]. In these methods, different speech segments are commonly treated as negative pairs, while augmented views or neighboring segments are regarded as positive pairs, enabling the model to learn speaker-discriminative representations without manual supervision.
+
+To further reduce the performance gap between unsupervised and supervised systems, iterative training frameworks have been widely adopted [15]--[20]. These methods generally alternate between two stages: learning speaker representations from unlabeled data and generating pseudo-labels that serve as supervisory signals for subsequent training iterations. Although such frameworks have demonstrated promising performance, their effectiveness is fundamentally constrained by the reliability of pseudo-labels generated during early iterations. In particular, treating different speech segments as negative pairs may introduce false negatives because some segments can actually belong to the same speaker. As reported in [21], such false negatives frequently occur in large-scale datasets such as VoxCeleb2 and can significantly degrade representation learning quality. More importantly, inaccurate pseudo-label assignments generated in early iterations are likely to be propagated throughout subsequent training rounds, resulting in unstable optimization, slow convergence, and degraded final performance. Therefore, pseudo-label reliability has become a central challenge in unsupervised speaker verification.
+
+Existing studies mainly attempt to alleviate these limitations from two perspectives. The first line of research focuses on improving representation learning through self-supervised distillation frameworks [22]--[26], which have been incorporated into iterative unsupervised speaker verification pipelines [27]--[30]. These methods can produce more stable and transferable speech representations, but they may still provide insufficient inter-speaker discrimination when highly similar speakers need to be separated. The second line of research investigates the use of self-supervised pre-trained models (PTMs) [31]--[35] to generate more robust speaker embeddings. Prior work [36] has shown that PTM-based embeddings can improve clustering quality during the initial iteration of unsupervised speaker verification. However, despite these advances, existing methods mainly focus on improving representation learning or training robustness, while the reliability of pseudo-label generation itself remains insufficiently explored. In practice, pseudo-labels generated from clustering often contain low-confidence assignments and fragmented speaker categories, especially during early training iterations. Without effective filtering, correction, and refinement mechanisms, such noisy pseudo-labels continue to accumulate across iterations, thereby limiting convergence efficiency and overall verification performance.
+
+\subsection{Limitations of Existing Noise-Resistant Learning Methods}
+
+To reduce the adverse effects of noisy pseudo-labels, existing studies on noise-resistant learning mainly adopt robust optimization objectives or pseudo-label refinement strategies. Robust optimization methods attempt to suppress the influence of noisy supervision during training through techniques such as regularized loss functions [37], confidence-aware gradient reweighting [38], dynamic classifier adjustment [39], and consistency-based sample selection [40]. Although these methods improve training stability under noisy supervision, they mainly mitigate the impact of label noise after pseudo-label generation rather than improving pseudo-label reliability itself.
+
+Another line of research aims to improve pseudo-label quality through clustering refinement, confidence-based filtering, or iterative label correction. For example, confidence-aware filtering and long-tail category pruning have been applied to K-means clustering outputs to retain more reliable pseudo-labels [41]. GMM-based filtering strategies have also been introduced to separate clean and noisy samples, where only the clean subset is used for subsequent model training [42]. In addition, hybrid online-offline correction strategies have been proposed to iteratively update pseudo-label assignments [36]. Although these methods can partially improve pseudo-label quality, they often rely on heuristic filtering or selective sample removal, which may result in inefficient utilization of unlabeled data. More importantly, existing approaches generally fail to jointly address three critical issues in unsupervised speaker verification: low-confidence pseudo-label assignments, fragmented speaker categories, and error propagation across iterative training rounds. As a result, pseudo-label noise can still accumulate throughout training, limiting both convergence efficiency and final system performance.
+
+\subsection{Contributions}
+
+Motivated by the above observations, we argue that pseudo-label reliability is the primary bottleneck in iterative unsupervised speaker verification. To address this issue, we propose a reliability-aware pseudo-label generation and refinement framework, termed High-Confidence Pseudo-Label (HCPL), for unsupervised speaker verification. The proposed framework jointly improves pseudo-label confidence and category consistency while progressively refining supervision during iterative training. The main contributions of this work are summarized as follows:
+
+\begin{enumerate}
+    \item We propose a reliability-aware pseudo-label generation framework, termed HCPL, which jointly improves pseudo-label confidence and category consistency through dual-PTM agreement filtering and pseudo-label merging. Specifically, different PTMs capture complementary speaker characteristics and exhibit different error distributions, making cross-model agreement an effective indicator of pseudo-label reliability.
+
+    \item We design a joint optimization strategy that combines contrastive learning with hard negative mining and a dynamic label correction loss. The proposed optimization framework progressively refines supervisory signals during iterative training, thereby improving discriminative representation learning while reducing the adverse effects of noisy pseudo-labels.
+
+    \item Extensive experiments conducted on VoxCeleb2 demonstrate that the proposed framework substantially improves both convergence efficiency and verification performance. The proposed method converges within only three iterations and achieves state-of-the-art performance among unsupervised speaker verification systems.
+\end{enumerate}
+
+The remainder of this paper is organized as follows. Section \uppercase\expandafter{\romannumeral2} reviews related work on unsupervised speaker verification and noise-resistant learning. Section \uppercase\expandafter{\romannumeral3} presents the proposed HCPL framework for high-confidence pseudo-label generation and refinement. Section \uppercase\expandafter{\romannumeral4} introduces the proposed joint optimization strategy for iterative training. Section \uppercase\expandafter{\romannumeral5} describes the experimental setup and reports the corresponding results and analyses. Finally, Section \uppercase\expandafter{\romannumeral6} concludes this paper.
+
+\section{Related Work}
+
+\subsection{Contrastive Learning for Speaker Representation}
+
+Contrastive learning has become a widely adopted paradigm for unsupervised speaker verification due to its ability to learn speaker-discriminative representations from unlabeled speech data. Inspired by contrastive frameworks in computer vision, such as SimCLR [8] and MoCo [9], previous studies [10]--[14] introduce contrastive objectives into speaker representation learning by constructing positive and negative sample pairs. In these methods, different augmented views of the same utterance are treated as positive pairs, while speech segments from different utterances are generally regarded as negative pairs. A shared encoder and projection head are then used to map augmented samples into a contrastive embedding space, where positive pairs are pulled closer and negative pairs are pushed apart.
+
+A representative framework is SimCLR, which maximizes the agreement between two augmented views of the same sample while contrasting them against other samples within a mini-batch. Let $\mathbf{x}_i$ and $\mathbf{x}_j$ denote two augmented views derived from the same utterance. After passing them through an encoder $f(\cdot)$ and a projection head $g(\cdot)$, the resulting representations are denoted as $\mathbf{z}_i=g(f(\mathbf{x}_i))$ and $\mathbf{z}_j=g(f(\mathbf{x}_j))$. SimCLR adopts the normalized temperature-scaled cross-entropy (NT-Xent) loss:
+\begin{equation}
+\ell_{i,j}=-\log \frac{\exp\left(\mathrm{sim}(\mathbf{z}_i,\mathbf{z}_j)/\tau\right)}
+{\sum\limits_{k=1}^{2N}\mathbf{1}_{[k\neq i]}\exp\left(\mathrm{sim}(\mathbf{z}_i,\mathbf{z}_k)/\tau\right)},
+\end{equation}
+where $N$ is the number of original samples in a mini-batch, $\mathrm{sim}(\mathbf{u},\mathbf{v})$ denotes cosine similarity, and $\tau$ is a temperature parameter. The overall objective is computed over all positive pairs:
+\begin{equation}
+\mathcal{L}_{\mathrm{SimCLR}}
+=
+\frac{1}{2N}
+\sum_{i=1}^{N}
+\left(
+\ell_{2i-1,2i}
++
+\ell_{2i,2i-1}
+\right).
+\end{equation}
+
+Although contrastive learning provides an effective foundation for unsupervised speaker representation learning, its performance strongly depends on the validity of the negative-pair assumption. In large-scale unlabeled speech corpora, different speech segments may originate from the same speaker, leading to false negatives during training. Such false negatives can weaken inter-speaker discrimination and degrade the quality of pseudo-labels generated in iterative frameworks. Consequently, existing contrastive-learning-based methods remain sensitive to pseudo-label noise and error propagation during iterative optimization.
+
+\subsection{Self-Distillation for Speaker Representation Learning}
+
+To alleviate the false-negative problem introduced by contrastive objectives, self-distillation has recently emerged as an alternative self-supervised paradigm for speech representation learning. Unlike contrastive learning, self-distillation avoids explicit negative-pair construction and instead learns invariant representations by enforcing consistency across multiple augmented views. This property makes self-distillation particularly attractive for unlabeled speech modeling.
+
+A representative framework is DINO, which adopts a teacher-student architecture in which the teacher network is updated as an exponential moving average of the student parameters. The student network is trained to match the teacher-generated probability distributions across different augmented views using a cross-entropy objective:
+\begin{equation}
+\mathcal{L}_{\mathrm{DINO}}
+=
+\frac{1}{|\mathcal{P}|}
+\sum_{\mathbf{x}\in\mathcal{V}_g}
+\sum_{\mathbf{x}'\in V,\mathbf{x}'\neq \mathbf{x}}
+H\!\left(P_t(\mathbf{x}),P_s(\mathbf{x}')\right),
+\end{equation}
+where
+\begin{equation}
+H\!\left(P_t(\mathbf{x}),P_s(\mathbf{x}')\right)
+=
+-\sum_{k=1}^{K}
+P_t^{(k)}(\mathbf{x})
+\log
+P_s^{(k)}(\mathbf{x}'),
+\end{equation}
+$V$ denotes the set of augmented views, $\mathcal{V}_g$ represents the global views fed into the teacher network, and $|\mathcal{P}|$ is the number of valid teacher-student view pairs.
+
+In speaker verification tasks, self-distillation frameworks can improve representation stability and reduce the adverse effects of false negatives. However, because these methods do not explicitly enforce inter-sample repulsion, their ability to separate highly similar speakers may still be limited. More importantly, although self-distillation improves representation learning robustness, it does not directly address the reliability of pseudo-label generation in iterative unsupervised speaker verification.
+
+\subsection{Pre-Trained Models for Unsupervised Speaker Verification}
+
+PTMs have recently become an important front-end for unsupervised speaker verification. Trained on large-scale unlabeled speech corpora, PTMs can learn transferable representations that capture rich acoustic and speaker-related information, demonstrating strong effectiveness across various downstream speech tasks [44]. Representative models include wav2vec 2.0 [32], HuBERT [33], UniSpeech-SAT [34], and WavLM [35].
+
+Recent studies [36], [49] have shown that PTM-based features can substantially improve unsupervised speaker verification performance. In particular, embeddings extracted from models such as WavLM provide stronger initialization for clustering and can effectively complement conventional acoustic representations. Compared with handcrafted or shallow learned features, PTM representations generally exhibit stronger robustness to acoustic variability and improved speaker discriminability, which are beneficial for iterative pseudo-labeling frameworks.
+
+Nevertheless, stronger pretrained representations alone cannot fully resolve the central challenge of iterative unsupervised speaker verification. Although PTMs improve embedding quality and clustering performance, pseudo-labels generated during early iterations may still contain low-confidence assignments and fragmented speaker categories. Without effective pseudo-label filtering and refinement mechanisms, such errors can accumulate throughout iterative optimization, thereby limiting convergence efficiency and final verification performance.
+
+\subsection{Iterative Frameworks for Unsupervised Speaker Verification}
+
+Most existing unsupervised speaker verification systems are built upon iterative optimization frameworks consisting of pseudo-label generation and model refinement stages.
+
+\textbf{Stage I: Pseudo-label generation.}
+Speaker embeddings are first extracted from unlabeled speech data using pretrained encoders or self-supervised representation learning models. Clustering algorithms are then applied to assign pseudo-labels to the unlabeled training samples.
+
+\textbf{Stage II: Model refinement.}
+The generated pseudo-labels are subsequently used to train a speaker verification model. The updated model produces more discriminative speaker embeddings, which are then re-clustered to obtain refined pseudo-labels for the next iteration.
+
+Through repeated optimization, iterative frameworks progressively improve speaker representations and pseudo-label quality. However, these methods remain highly sensitive to the reliability of pseudo-labels generated during early iterations. Noisy assignments and fragmented speaker categories may be repeatedly reinforced across training rounds, resulting in unstable optimization, slow convergence, and degraded final performance. Therefore, improving pseudo-label reliability has become a key challenge for iterative unsupervised speaker verification systems.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=7in]{v2.png}
+\caption{\centering{The overall architecture of the proposed method.
+Step 1–4: High-confidence pseudo-label (HCPL) generation via dual PTMs.
+Step 5–6: Model training with hard negative mining-based contrastive loss and dynamic label correction loss. }}
+\label{fig:frame}
+\end{figure*}
+
+\section{High-Confidence Pseudo-Label Generation Framework}
+
+Existing iterative unsupervised speaker verification systems are fundamentally constrained by unreliable pseudo-label supervision during early training iterations. In practice, pseudo-labels generated from clustering often suffer from two critical issues: low-confidence assignments caused by noisy clustering boundaries and category fragmentation in which samples from the same speaker are partitioned into multiple clusters. These errors are repeatedly propagated throughout iterative optimization, resulting in unstable convergence and degraded verification performance.
+
+To address these limitations, we propose the HCPL framework based on dual PTMs. The proposed framework aims to improve pseudo-label reliability before downstream model optimization by jointly suppressing noisy label assignments and reducing category fragmentation. As illustrated in Fig.~\ref{fig:frame}, HCPL consists of four stages:
+1) extracting speaker embeddings using PTMs;
+2) generating initial pseudo-labels through clustering;
+3) performing cross-model consistency filtering to retain high-confidence pseudo-labels; and
+4) merging fragmented categories to obtain a more compact and reliable pseudo-label set.
+
+\subsection{Pre-Trained Models for Reliable Pseudo-Labeling}
+
+PTMs have recently demonstrated strong capability in learning transferable speech representations from large-scale unlabeled corpora. Prior studies [50] show that speaker-related information is unevenly distributed across Transformer layers: lower layers mainly encode local acoustic and channel characteristics, whereas higher layers are increasingly dominated by linguistic and semantic information. Consequently, intermediate Transformer layers often provide more discriminative speaker representations for speaker verification tasks. Following this observation, we extract speaker embeddings from the $L$-th Transformer layer, where $L$ is selected empirically according to validation performance.
+
+In this work, we employ several representative speech PTMs, including wav2vec~2.0, HuBERT, UniSpeech-SAT, and WavLM. Although these models share similar encoder architectures, their distinct pre-training objectives lead to complementary representation characteristics and different clustering error distributions. We argue that such cross-model diversity provides a natural reliability cue for pseudo-label generation: pseudo-label assignments that remain consistent across different PTMs are more likely to correspond to stable speaker structures rather than model-specific clustering noise. Based on this observation, we construct a dual-PTM framework in which cross-model agreement is utilized as a criterion for high-confidence pseudo-label selection.
+
+\subsection{Pseudo-Label Generation via Infomap Clustering}
+
+After extracting speaker embeddings from PTMs, clustering is performed to generate pseudo-labels for unlabeled speech samples. Traditional clustering methods such as K-means [51] mainly operate in Euclidean space and often struggle to capture the complex manifold structure of high-dimensional speech embeddings. To better model the intrinsic neighborhood relationships among speaker representations, we adopt the graph-based Infomap clustering algorithm [52], which has demonstrated strong effectiveness in speaker clustering tasks [36], [53].
+
+Infomap identifies community structures by minimizing the expected coding length of information flow over a graph. In our implementation, each speaker embedding is treated as a graph node, while cosine similarities between embeddings define weighted graph edges. Random walks are then performed on the graph to model information flow between nodes. The clustering objective is formulated through the map equation:
+\begin{equation}
+L(M)
+=
+P_{\mathrm{exit}}L_{\mathrm{exit}}
++
+\sum_{i=1}^{K}
+P_iL_i,
+\end{equation}
+where $P_{\mathrm{exit}}$ denotes the probability of inter-cluster transitions, $L_{\mathrm{exit}}$ represents the average coding length for inter-cluster movement, and $P_i$ and $L_i$ denote the visitation probability and average coding length within the $i$-th cluster, respectively. During optimization, nodes are iteratively assigned to neighboring clusters that minimize the overall coding length until convergence is reached.
+
+Compared with conventional clustering methods, Infomap can better capture the non-linear structural relationships among speaker embeddings, thereby producing more compact and semantically consistent pseudo-label clusters.
+
+\subsection{High-Confidence Pseudo-Label Filtering}
+
+Pseudo-label quality in iterative unsupervised speaker verification is highly sensitive to clustering errors during early iterations. In particular, unreliable pseudo-label assignments may introduce incorrect supervision signals that are repeatedly amplified throughout iterative optimization. To alleviate this issue, we propose a high-confidence filtering (HCF) strategy based on cross-model agreement between two PTMs.
+
+The proposed method is motivated by the observation that different PTMs capture complementary speaker characteristics and exhibit distinct clustering error distributions. Consequently, pseudo-label assignments that remain consistent across multiple PTMs are more likely to reflect intrinsic speaker structures rather than model-specific noise. We therefore treat cross-model consistency as a reliability indicator for pseudo-label selection.
+
+Specifically, let $Y_1$ and $Y_2$ denote two pseudo-label sets obtained from clustering the embeddings extracted by two different PTMs. The corresponding cluster sets are defined as
+\begin{equation}
+C_1=\{c_1^1,c_2^1,\ldots,c_m^1\},
+\end{equation}
+\begin{equation}
+C_2=\{c_1^2,c_2^2,\ldots,c_n^2\},
+\end{equation}
+where $c_i^1$ and $c_j^2$ denote the cluster identities in $Y_1$ and $Y_2$, respectively.
+
+Since clustering labels are permutation-invariant, the specific numerical values of cluster indices are arbitrary as long as the underlying sample grouping remains unchanged [54]. Based on this property, we first compute the overlap score between clusters:
+\begin{equation}
+S(i,j)
+=
+\left|
+\left\{
+x_k
+\mid
+x_k\in U_0,
+Y_1(x_k)=c_i^1,
+Y_2(x_k)=c_j^2
+\right\}
+\right|,
+\end{equation}
+where $U_0$ denotes the unlabeled dataset and $x_k$ represents the $k$-th speech sample.
+
+The Hungarian algorithm [55] is then employed to obtain the optimal cluster alignment:
+\begin{equation}
+\mathrm{Match}
+=
+\arg\max_{\pi}
+\sum_{(i,j)\in\pi}
+S(i,j),
+\end{equation}
+where $\pi$ denotes a feasible cluster matching configuration. Based on the obtained matching relationship, the pseudo-labels in $Y_2$ are aligned with those in $Y_1$:
+\begin{equation}
+\mathrm{Mapping}(c_j^2)=c_i^1,
+\quad
+\forall(i,j)\in\mathrm{Match},
+\end{equation}
+and the aligned pseudo-labels are defined as
+\begin{equation}
+Y_2^{\mathrm{aligned}}(x_k)
+=
+\mathrm{Mapping}(Y_2(x_k)).
+\end{equation}
+
+Based on the aligned pseudo-label assignments, the high-confidence sample set is defined as
+\begin{equation}
+\mathcal{I}
+=
+\left\{
+x_k
+\mid
+Y_1(x_k)
+=
+Y_2^{\mathrm{aligned}}(x_k)
+\right\}.
+\end{equation}
+
+The final high-confidence pseudo-label set is therefore obtained as
+\begin{equation}
+Y_f
+=
+Y_1(\mathcal{I}).
+\end{equation}
+
+By filtering pseudo-labels before downstream optimization, the proposed HCF strategy reduces error propagation during iterative training and provides a more stable initialization for subsequent model refinement.
+
+\subsection{Pseudo-Label Merging}
+
+Although high-confidence filtering can suppress noisy pseudo-label assignments, clustering fragmentation may still occur when samples belonging to the same speaker are partitioned into multiple clusters. Such fragmented pseudo-labels introduce unstable supervision signals and reduce the consistency of iterative optimization. To alleviate this issue, we further propose a pseudo-label merging (PLM) strategy that identifies and merges highly similar pseudo-label clusters.
+
+For the $i$-th pseudo-label cluster, the cluster centroid is computed as
+\begin{equation}
+\mathbf{c}_i
+=
+\frac{1}{N_i}
+\sum_{k=1}^{N_i}
+\mathbf{e}_k,
+\end{equation}
+where $N_i$ denotes the number of samples in the $i$-th cluster and $\mathbf{e}_k$ represents the embedding of the $k$-th sample.
+
+Clusters belonging to the same speaker are expected to exhibit highly similar centroid representations in the embedding space. Therefore, we calculate the cosine similarity between cluster centroids and define the pseudo-label merging threshold as
+\begin{equation}
+\theta_{\mathrm{PLM}}
+=
+\mu
+\cdot
+\max_{i\neq j}
+\cos(\mathbf{c}_i,\mathbf{c}_j),
+\end{equation}
+where $\mu\in[0,1]$ is a scaling factor and $\cos(\mathbf{c}_i,\mathbf{c}_j)$ denotes the cosine similarity between cluster centroids.
+
+If the similarity between two cluster centroids exceeds $\theta_{\mathrm{PLM}}$, the corresponding pseudo-label clusters are merged into the same category. Through this process, fragmented pseudo-labels can be effectively consolidated, thereby improving category consistency and reducing supervision instability during iterative training.
+\begin{algorithm}[t]
+\caption{\textbf{HCPL:} High-Confidence Pseudo-Label Generation Framework}
+\label{alg:alg1}
+\begin{algorithmic}
+\STATE
+\STATE \textbf{Input:} Unlabeled audio set $U_0$, PTM-A, PTM-B, clustering algorithm $\mathcal{C}(\cdot)$, merging threshold $\theta_{\mathrm{PLM}}$
+\STATE \textbf{Output:} Reliable pseudo-label set $\tilde{Y}$
+
+\STATE \textbf{Step 1: Speaker embedding extraction}
+\FOR{each $u \in U_0$}
+    \STATE $\mathbf{e}_A(u)\gets \mathrm{PTM\mbox{-}A}(u)$
+    \STATE $\mathbf{e}_B(u)\gets \mathrm{PTM\mbox{-}B}(u)$
+\ENDFOR
+
+\STATE \textbf{Step 2: Pseudo-label generation}
+\STATE $\{y_A(u)\}_{u\in U_0}\gets \mathcal{C}(\{\mathbf{e}_A(u)\})$
+\STATE $\{y_B(u)\}_{u\in U_0}\gets \mathcal{C}(\{\mathbf{e}_B(u)\})$
+
+\STATE \textbf{Step 3: High-confidence filtering (HCF)}
+\STATE Construct matching matrix between $y_A$ and $y_B$
+\STATE $(\pi_A,\pi_B)\gets \mathrm{Hungarian}(\cdot)$
+\STATE $U^{\mathrm{hc}}\gets\varnothing$
+
+\FOR{each $u\in U_0$}
+    \IF{$\pi_A(y_A(u))=\pi_B(y_B(u))$}
+        \STATE $U^{\mathrm{hc}}\gets U^{\mathrm{hc}}\cup\{u\}$
+    \ENDIF
+\ENDFOR
+
+\STATE \textbf{Step 4: Pseudo-label merging (PLM)}
+\STATE Compute cluster centroids $\{\mathbf{c}_k\}$ for samples in $U^{\mathrm{hc}}$
+
+\FOR{each pair $(\mathbf{c}_i,\mathbf{c}_j)$}
+    \STATE $\mathrm{sim}(i,j)\gets \mathrm{CosineSim}(\mathbf{c}_i,\mathbf{c}_j)$
+    \IF{$\mathrm{sim}(i,j)\ge\theta_{\mathrm{PLM}}$}
+        \STATE Merge clusters $i$ and $j$
+    \ENDIF
+\ENDFOR
+
+\STATE $\tilde{Y}\gets$ merged pseudo-labels of samples in $U^{\mathrm{hc}}$
+
+\STATE \textbf{return} $\tilde{Y}$
+
+\end{algorithmic}
+\end{algorithm}
+\section{Learning with Noisy Pseudo-Labels}
+
+After generating reliable pseudo-labels through the proposed HCPL framework, the remaining challenge lies in mitigating residual pseudo-label noise during downstream optimization. Although high-confidence filtering substantially improves pseudo-label reliability, incorrect assignments may still exist and can negatively affect iterative model refinement. To address this issue, we design a unified training framework that jointly integrates PTM-enhanced feature fusion, Dynamic Label Noise Correction (DLNC), and contrastive learning with hard negative mining (HNM). The proposed framework aims to improve supervision reliability while fully exploiting unlabeled speech data for discriminative speaker representation learning.
+
+\subsection{Speaker Verification Backbone}
+
+Recent studies [49] have shown that integrating PTM-based representations with conventional acoustic features can improve speaker verification performance by leveraging complementary information across different feature spaces. Motivated by this observation, we adopt a hybrid feature extraction framework that combines Transformer-based PTM representations with conventional FBank features.
+
+Specifically, multi-layer Transformer outputs from the PTM are adaptively fused to capture speaker-related information distributed across different semantic levels. Meanwhile, FBank features are processed through a convolutional neural network (CNN) encoder to preserve local acoustic characteristics. The fused representations are subsequently fed into an ECAPA-TDNN backbone [7] for downstream speaker embedding extraction and model optimization.
+
+\subsection{Dynamic Label Noise Correction}
+
+Although the proposed HCPL framework substantially improves pseudo-label reliability, residual noisy assignments may still remain after filtering and merging. Such noisy supervision can gradually accumulate during iterative optimization and eventually degrade model generalization. Prior studies [57], [58] show that DNNs tend to learn clean and discriminative patterns during the early stages of training before eventually memorizing noisy labels. This observation suggests that the model's own predictions can provide valuable reliability cues for adaptive supervision refinement.
+
+Motivated by this property, we propose a Dynamic Label Noise Correction (DLNC) loss that progressively adjusts the contribution of pseudo-label supervision according to both global training confidence and sample-level prediction uncertainty.
+
+Consider a mini-batch of training samples
+\begin{equation}
+\Phi = \left\{ x_i, y_i \right\}_{i=1}^{B},
+\end{equation}
+where $B$ denotes the mini-batch size and $y_i$ represents the pseudo-label assigned to sample $x_i$. The Label Noise Correction (LNC) loss [36] is formulated as
+\begin{equation}
+\mathcal{L}_{\mathrm{LNC}}
+=
+-\frac{1}{B}
+\sum_{i=1}^{B}
+\left[
+\log(P_{i,y_i})
++
+\delta_t
+\log(P_{i,\hat{y}_i})
+\right],
+\end{equation}
+where $P_{i,y_i}$ and $P_{i,\hat{y}_i}$ denote the posterior probabilities corresponding to the pseudo-label $y_i$ and the predicted label $\hat{y}_i$, respectively. The global confidence weight $\delta_t$ is defined as
+\begin{equation}
+\delta_t
+=
+v\delta_{t-1}
++
+(1-v)\hat{P}_t,
+\end{equation}
+where
+\begin{equation}
+\hat{P}_t
+=
+\frac{1}{B}
+\sum_{i=1}^{B}
+P_{i,\hat{y}_i}.
+\end{equation}
+
+Here, $\hat{P}_t$ represents the average confidence of the predicted labels during the $t$-th iteration. Since $\hat{P}_t$ is estimated from a single mini-batch, it may exhibit high variance and unstable fluctuations. To improve robustness, an exponential moving average (EMA) mechanism is adopted to smooth the confidence estimation across historical iterations. The decay factor $v$ controls the contribution of previous confidence statistics.
+
+Although $\delta_t$ captures the global confidence level of the mini-batch, it does not account for confidence variations among individual samples. Applying identical supervision weights to all samples may amplify the adverse effects of noisy pseudo-labels. To address this issue, we further introduce a sample-level dynamic weighting mechanism:
+\begin{equation}
+\mathcal{L}_{\mathrm{DLNC}}
+=
+-\frac{1}{B}
+\sum_{i=1}^{B}
+\left[
+\log(P_{i,y_i})
++
+\omega_i\delta_t
+\log(P_{i,\hat{y}_i})
+\right],
+\end{equation}
+where the sample-specific weight $\omega_i$ is defined as
+\begin{equation}
+\omega_i
+=
+\frac{
+P_{i,\hat{y}_i}
+-
+P_{i,j}
+}{
+P_{i,\hat{y}_i}
+},
+\end{equation}
+and $P_{i,j}$ denotes the second-largest posterior probability for sample $x_i$.
+
+A larger posterior margin indicates stronger prediction certainty and lower ambiguity between competing classes, making it a natural indicator of pseudo-label reliability. Specifically, when
+\begin{equation}
+P_{i,\hat{y}_i}
+\gg
+P_{i,j},
+\end{equation}
+the model exhibits high confidence in its prediction, and the corresponding sample receives a larger optimization weight. Conversely, a smaller margin suggests prediction ambiguity and potential pseudo-label noise, thereby reducing the contribution of the sample during optimization. Through this mechanism, the proposed DLNC loss dynamically emphasizes reliable samples while suppressing noisy supervision.
+
+Furthermore, when the predicted label agrees with the pseudo-label, the corresponding sample is regarded as reliable supervision. Following [39], the posterior probability is further adjusted as
+\begin{equation}
+P'_{i,\hat{y}_i}
+=
+\frac{
+e^{s\cos(\theta_{\hat{y}_ii}+\alpha)}
+}{
+e^{s\cos(\theta_{\hat{y}_ii}+\alpha)}
++
+\sum_{j\neq \hat{y}_i}^{K}
+e^{s(\cos(\theta_{ji})+r)}
+},
+\end{equation}
+where $s$ and $\alpha$ denote the scaling and angular margin parameters of AAM-Softmax, respectively, and $K$ is the number of pseudo-label classes. The adaptive margin term is defined as
+\begin{equation}
+r
+=
+\frac{1}{10}
+\left(
+1-\cos(\theta_j)
+\right)
+\geq 0.
+\end{equation}
+
+This mechanism further emphasizes reliable supervision during optimization and encourages the model to focus on high-confidence pseudo-labels.
+
+The aforementioned DLNC strategy operates online during model training, while the pseudo-label assignments themselves remain unchanged. In contrast, offline label correction [36] directly modifies the pseudo-label assignments. Specifically, each sample in the unlabeled dataset is divided into $M$ speech segments, and the model predicts labels for all segments individually. If the most frequent predicted label $Y_t$ satisfies
+\begin{equation}
+\frac{I}{M}>0.5,
+\end{equation}
+where $I$ denotes the occurrence count of $Y_t$, the pseudo-label is corrected to $Y_t$. Otherwise, the sample is regarded as unreliable and excluded from subsequent training. The corrected pseudo-label set is then used for the next training iteration.
+
+\begin{algorithm}[t]
+\caption{Iterative Unsupervised Speaker Verification Training with HCPL Initialization}
+\label{alg:alg2}
+\begin{algorithmic}
+\STATE 
+\STATE \textbf{Input:} Unlabeled audio set $U_{0}$, pretrained encoders PTM-A and PTM-B, maximum iterations $K$, stopping criterion $\varepsilon$
+\STATE \textbf{Output:} Trained speaker encoder $f_{\theta}^{(*)}$
+
+\STATE 
+\STATE \textbf{Initialization:} Randomly initialize $f_{\theta}^{(0)}$ or adopt a pretrained checkpoint
+
+%--------------------------------------------------------
+\STATE 
+\STATE \textbf{Iteration 1: HCPL-based pseudo-labeling}
+\STATE $(\tilde{Y}^{(1)}, U_{\mathrm{nl}}^{(1)}) \gets \mathrm{HCPL}(U_{0})$ \hfill \COMMENT{Call Alg.~\ref{alg:alg1}, return high-confidence labels and discarded set}
+\STATE Train $f_{\theta}^{(1)}$ on $(U_{0} \setminus U_{\mathrm{nl}}^{(1)}, \tilde{Y}^{(1)})$ with loss
+\STATE \hspace{0.8cm} $\mathcal{L} = \mathcal{L}_{\mathrm{DLNC}} + \mathcal{L}_{\mathrm{HNM}}$
+\STATE Evaluate performance metric $\mathcal{M}^{(1)}$
+
+%--------------------------------------------------------
+\STATE 
+\STATE \textbf{Subsequent iterations: prediction-based pseudo labels}
+\FOR{$k = 2$ to $K$}
+    \STATE \textbf{Step 1: Generate pseudo labels from previous model}
+    \FOR{each $u \in U_{0}$}
+        \STATE $\hat{y}^{(k)}(u) \gets \mathrm{Predict}\big(f_{\theta}^{(k-1)}, u\big)$
+    \ENDFOR
+    \STATE $\tilde{Y}^{(k)} \gets \{\hat{y}^{(k)}(u)\}_{u \in U_{0}}$
+    
+    \STATE 
+    \STATE \textbf{Step 2: Supervised training with $\mathcal{L}_{\mathrm{DLNC}}$}
+    \STATE Train $f_{\theta}^{(k)}$ on $(U_{0}, \tilde{Y}^{(k)})$ with loss
+    \STATE \hspace{0.8cm} $\mathcal{L} = \mathcal{L}_{\mathrm{DLNC}}$
+    
+    \STATE 
+    \STATE \textbf{Step 3: Convergence check}
+    \STATE Evaluate performance metric $\mathcal{M}^{(k)}$
+    \IF{$|\mathcal{M}^{(k)} - \mathcal{M}^{(k-1)}| < \varepsilon$}
+        \STATE \textbf{break}
+    \ENDIF
+\ENDFOR
+
+\STATE 
+\STATE $f_{\theta}^{(*)} \gets f_{\theta}^{(k)}$
+\STATE \textbf{return} $f_{\theta}^{(*)}$
+
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Contrastive Learning with Hard Negative Mining}
+
+Although the proposed HCPL framework filters unreliable pseudo-labels, a portion of unlabeled data remains excluded from supervised optimization. Directly discarding these samples may result in inefficient utilization of unlabeled speech data. To address this issue, we introduce a self-supervised contrastive learning objective with hard negative mining (HNM) to further exploit the remaining unlabeled samples.
+
+The proposed strategy aims to improve inter-speaker discrimination by focusing optimization on acoustically similar yet semantically different speaker representations, which are particularly challenging in large-scale speaker verification scenarios.
+
+Let $U_{\mathrm{nl}}$ denote the unlabeled data excluded by high-confidence filtering. For the $i$-th audio sample in $U_{\mathrm{nl}}$, two non-overlapping 2-second speech segments are randomly sampled and fed into the speaker verification model to obtain embeddings $\mathbf{z}_i^1$ and $\mathbf{z}_i^2$. The two embeddings extracted from the same utterance form a positive pair, while embeddings originating from different utterances constitute negative pairs.
+
+After $L_2$ normalization,
+\begin{equation}
+\bar{\mathbf{z}}
+=
+\frac{\mathbf{z}}{\|\mathbf{z}\|},
+\end{equation}
+the cosine similarity between two embeddings is computed as
+\begin{equation}
+S_{ij}
+=
+\bar{\mathbf{z}}_i^1
+\cdot
+\bar{\mathbf{z}}_j^2.
+\end{equation}
+
+The similarity matrix within a mini-batch is therefore represented as
+\begin{equation}
+S=
+\begin{bmatrix}
+S_{11} & S_{12} & \cdots & S_{1N} \\
+S_{21} & S_{22} & \cdots & S_{2N} \\
+\vdots & \vdots & \ddots & \vdots \\
+S_{N1} & S_{N2} & \cdots & S_{NN}
+\end{bmatrix},
+\end{equation}
+where $N$ denotes the mini-batch size.
+
+Following a linear transformation
+\begin{equation}
+S'_{ij}
+=
+\omega S_{ij}+b,
+\end{equation}
+the contrastive loss is formulated as
+\begin{equation}
+\mathcal{L}_{\mathrm{CL}}
+=
+-\frac{1}{N}
+\sum_{i=1}^{N}
+\log
+\frac{
+e^{S'_{ii}}
+}{
+\sum_{j=1}^{N}e^{S'_{ij}}
+}.
+\end{equation}
+
+Conventional contrastive learning methods generally treat all negative samples equally, which limits their ability to focus on acoustically confusing speaker pairs. To improve discriminative representation learning, we introduce hard negative mining (HNM), which selects the most challenging negative sample for each anchor:
+\begin{equation}
+S_i^{\mathrm{hard}}
+=
+\max_{j\neq i}
+S_{ij}.
+\end{equation}
+
+The corresponding HNM loss is formulated as
+\begin{equation}
+\mathcal{L}_{\mathrm{HNM}}
+=
+\frac{1}{N}
+\sum_{i=1}^{N}
+\max
+\left(
+0,
+S_i^{\mathrm{hard}}
+-
+S_{ii}
++
+m
+\right),
+\end{equation}
+where $m$ denotes the margin parameter controlling the separation between positive and negative pairs.
+
+The final optimization objective jointly combines reliability-aware pseudo-label supervision and discriminative contrastive representation learning:
+\begin{equation}
+\mathcal{L}_{\mathrm{Total}}
+=
+\mathcal{L}_{\mathrm{DLNC}}
++
+\gamma
+\mathcal{L}_{\mathrm{HNM}},
+\end{equation}
+where $\gamma$ controls the contribution of the HNM objective.
+
+\section{Experimental Setup}
+
+\subsection{Datasets}
+
+\textbf{Training Set}: 
+To evaluate the proposed HCPL framework, experiments were conducted on the VoxCeleb2 dataset [43], which is a large-scale speaker verification corpus collected from YouTube interview videos. VoxCeleb2 contains 1,092,009 utterances from 5,994 speakers and serves as an extension of the original VoxCeleb dataset. In this work, only the audio modality was utilized, and no speaker identity annotations were used during the entire training process.
+
+\textbf{Evaluation Set}: 
+The proposed method is evaluated on three standard VoxCeleb1 evaluation protocols [60]: Vox1-O, Vox1-E, and Vox1-H. Vox1-O corresponds to the original VoxCeleb1 test set and contains 37,720 verification trials from 40 speakers. Vox1-E extends the evaluation to the entire VoxCeleb1 dataset, consisting of 581,480 verification trials from 1,251 speakers. Vox1-H is a more challenging evaluation protocol containing 552,536 trials from 1,190 speakers, where all speaker pairs share the same nationality and gender, thereby substantially increasing speaker discrimination difficulty.
+
+Performance is evaluated using Equal Error Rate (EER), where the false acceptance rate equals the false rejection rate.
+
+
+\textbf{Data Augmentation}: 
+To improve robustness under complex acoustic conditions, online data augmentation was employed during training. Specifically, additive noise and reverberation were introduced using the MUSAN [61] and RIR [62] datasets.
+
+\subsection{PTM Selection}
+
+Since speaker-related information is distributed unevenly across different Transformer layers of PTMs, we first conducted a layer-wise evaluation on the Vox1-O test set to identify the most speaker-discriminative representations. Lower EER values indicate that the corresponding layer captures richer speaker identity information. As illustrated in Fig.~\ref{fig:Transformer_layers} , WavLM consistently achieves lower EERs than other PTMs across most Transformer layers, demonstrating stronger speaker representation capability and higher sensitivity to speaker identity. In particular, the 11th layer of WavLM achieves the best performance, while the 9th layer of UniSpeech-SAT yields the second-lowest EER.
+
+The complementary performance characteristics observed between WavLM and UniSpeech-SAT suggest that the two PTMs encode different aspects of speaker-related information. Motivated by this observation, we employ WavLM and UniSpeech-SAT as the dual PTMs in the proposed HCPL framework for pseudo-label generation.
+
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=3.5in]{PTM_Select.png}
+\caption{\centering{EER\% performance on Vox1-O across different Transformer layers.}}
+\label{fig:Transformer_layers}
+\end{figure}
+\subsection{Clustering Analysis}
+
+To determine the most suitable clustering strategy for pseudo-label generation, we evaluated several representative clustering algorithms on the VoxCeleb2 dataset. Speaker embeddings were extracted from the 11th layer of WavLM and the 9th layer of UniSpeech-SAT, which exhibited the strongest speaker discrimination capability in the layer-wise analysis.
+
+For K-means and Agglomerative Hierarchical Clustering (AHC) [63], the number of clusters was set to 6,000, which closely approximates the ground-truth number of speakers (5,994). Clustering performance was evaluated using Precision, Recall, F1-score, and Normalized Mutual Information (NMI). The corresponding results are summarized in Table~\ref{tab:clustering}. Although Leiden [64] achieves the highest precision on both feature sets, its relatively low recall indicates that it tends to generate fragmented speaker clusters. In contrast, Infomap consistently achieves the best F1-score and NMI, demonstrating a more balanced trade-off between cluster purity and cluster completeness. These results suggest that Infomap better preserves the global structural relationships among speaker embeddings while reducing category fragmentation. Therefore, Infomap was adopted as the clustering algorithm throughout all experiments.
+
+
+\begin{table}[!t] 
+    \centering
+    \caption{Clustering quality of pseudo-label sets generated during the first iteration.} % 表格标题
+    \setlength{\tabcolsep}{4pt} % 微调列间距（可选）
+    \begin{tabular}{c c c c c c} % 补全竖线，更规范
+        \hline
+        PTM & Method & Precision$\uparrow$ & Recall$\uparrow$ & F1-score$\uparrow$ & NMI$\uparrow$ \\
+        \hline
+        \multirow{4}{*}{WavLM}
+        & K-means  & 0.303 & 0.209 & 0.247  & 0.665  \\ 
+        & AHC  & 0.442 & 0.346 & 0.388  & 0.776  \\
+        & Leiden  & \textbf{0.887} & 0.237 & 0.374  & 0.859  \\
+        & Infomap & 0.795 & \textbf{0.426} & \textbf{0.555} &\textbf{0.871}  \\
+        \hline
+        \multirow{4}{*}{UniSpeech-SAT}
+        & K-means  & 0.287 & 0.200 & 0.236  & 0.651  \\ 
+        & AHC  & 0.442 & 0.347 & 0.389  & 0.787  \\
+        & Leiden  & \textbf{0.901} & 0.173 & 0.291  & 0.861  \\
+        & Infomap  & 0.697 & \textbf{0.364} & \textbf{0.579}&\textbf{0.872}  \\
+        \hline
+    \end{tabular}
+    \label{tab:clustering}
+\end{table}
+
+
+
+
+
+\subsection{First-Round Pseudo-Label Analysis}
+To more comprehensively evaluate pseudo-label quality, we additionally employ Clustering Accuracy (Cluster-Acc), which measures the optimal matching accuracy between pseudo-labels and ground-truth speaker identities using the Hungarian algorithm [55]. Cluster-Acc is defined as
+\begin{equation}
+\mathrm{Cluster\mbox{-}Acc}
+=
+\frac{
+\max_{\pi}
+\sum_{(i,j)\in\pi}
+C(i,j)
+}{
+M
+},
+\end{equation}
+where $\pi$ denotes all feasible one-to-one mapping schemes between pseudo-labels and ground-truth labels, and $M$ is the total number of samples.
+
+Using Infomap clustering, we first generated two initial pseudo-label sets, denoted as $Y_1$ and $Y_2$, from WavLM and UniSpeech-SAT embeddings, respectively. After applying HCF, the refined pseudo-label set $Y_3$ was obtained. As summarized in Table~\ref{tab:First-round pseudo-label set metrics}, $Y_3$ significantly outperforms both $Y_1$ and $Y_2$ in terms of F1-score, NMI, and Cluster-Acc. These results indicate that the proposed HCF strategy effectively suppresses unreliable pseudo-label assignments while preserving semantically consistent speaker clusters.
+
+Subsequently, PLM was further applied to $Y_3$, resulting in the final pseudo-label set $Y_4$. Compared with $Y_3$, $Y_4$ achieves further improvements across all clustering metrics. Notably, although the number of samples remains unchanged, the number of pseudo-label classes decreases by more than 300. This observation suggests that the proposed PLM strategy effectively alleviates category fragmentation by consolidating highly similar speaker clusters, thereby producing a pseudo-label distribution that better approximates the underlying speaker structure of the dataset.
+
+Based on these observations, $Y_4$ is adopted as the initial pseudo-label set for subsequent unsupervised speaker verification training.
+\begin{table}[!t] % table* 表示跨双栏
+    \centering
+    \caption{First-round pseudo-label set metrics} % 表格标题
+    \setlength{\tabcolsep}{4pt} % 微调列间距（可选）
+    \begin{tabular}{c c c c c c c} % 补全竖线，更规范
+        \hline
+        Label set  & F1-score$\uparrow$ & NMI$\uparrow$ & Cluster-Acc$\uparrow$ & Class-Num & Sample-Num \\
+        \hline
+        Y1    & 0.555 & 0.871 & 0.569  & 20385  &1092009  \\    
+        Y2     & 0.479  & 0.872 & 0.519 & 21296 & 1092009  \\         
+        Y3     & 0.692 & 0.942 & 0.677  & 18180   & 755517   \\
+        Y4     & \textbf{0.702} & \textbf{0.944} & \textbf{0.683} &  17819  &  755517     \\
+        \hline
+    \end{tabular}
+    \label{tab:First-round pseudo-label set metrics}
+\end{table}
+\subsection{Implementation Details}
+
+For downstream unsupervised speaker verification training, WavLM was selected as the PTM backbone due to its superior performance on the Vox1-O evaluation set. The downstream speaker encoder adopts an ECAPA-TDNN architecture with a channel size of 1024.
+
+Training utterances were segmented into non-overlapping 2-second speech chunks, and the supervised training batch size was set to 512. Optimization was performed using AdamW together with a triangular cyclic learning rate schedule. The entire training procedure consisted of two stages:
+
+\begin{enumerate}
+    \item The PTM parameters were first frozen, and only the downstream ECAPA-TDNN was optimized for 10 epochs. The learning rate followed a triangular cyclic schedule ranging from $1\times10^{-8}$ to $5\times10^{-4}$, with a cycle step size of 5 epochs.
+
+    \item The PTM parameters were subsequently unfrozen, and the entire framework was jointly fine-tuned for an additional 10 epochs. During this stage, the maximum learning rate was reduced to $5\times10^{-5}$ to stabilize optimization.
+\end{enumerate}
+
+For contrastive learning with hard negative mining, the mini-batch size was set to 16. A relatively small batch size was adopted to reduce the probability of false negative pairs originating from the same speaker within a mini-batch, thereby improving the reliability of contrastive supervision. In $\mathcal{L}_{\mathrm{HNM}}$, the margin parameter was fixed to 0.2. During inference, cosine similarity scoring was employed without additional score normalization.
+
+Table~\ref{tab:single-stage comparison} presents the EER results on the Vox1-O, Vox1-E, and Vox1-H evaluation protocols after the first training iteration. The proposed HCPL framework consistently outperforms existing single-stage unsupervised speaker verification systems across all evaluation sets. Since first-iteration performance is highly dependent on the quality of the initial pseudo-labels, these results demonstrate that the proposed HCPL framework is capable of generating cleaner and more reliable pseudo-label supervision from unlabeled data. Benefiting from the improved supervision quality, the downstream speaker verification model is able to learn more discriminative speaker representations after only a single round of training.
+
+Table~\ref{tab:multi-stage comparison} further reports the final converged performance and the corresponding number of iterations required by different iterative unsupervised speaker verification frameworks. The proposed method achieves the best EERs on all three evaluation protocols while converging within only three iterations. In particular, our framework achieves an EER of 1.01\% on Vox1-O, yielding a 4.72\% relative improvement over the current state-of-the-art (SOTA) unsupervised system. On the more challenging Vox1-E and Vox1-H protocols, the proposed method further achieves EERs of 1.36\% and 2.53\%, respectively, consistently outperforming all previous unsupervised approaches.
+
+\begin{table*}[t] % table* 表示跨双栏
+    \centering
+   \caption{Comparison of the proposed HCPL method with representative single-stage unsupervised speaker verification frameworks in terms of EER (\%) on the Vox1-O, Vox1-E, and Vox1-H test sets.} % 表格标题
+    \setlength{\tabcolsep}{10pt} % 微调列间距（可选）
+    \begin{tabular}{l l l  c c c} % 补全竖线，更规范
+        \hline
+        Category & Method  & Model   & Vox1-O & Vox1-E & Vox1-H  \\
+        \hline
+        \multirow{10}{*}{Contrastive}
+        % &AP + l-mix  & ECAPA-TDNN & 10.49 &  &    \\
+        % &AP + AAT  & ResNet34 & 8.65 &  &    \\
+        &SimCLR + MSE[10] & ResNet34 & 8.28 &  &    \\
+        &MoCo + WavAug[11]& TDNN & 8.23 &-  &-    \\
+        &SimCLR + Margin[12]& ResNet34 & 7.85 & - &  -  \\
+        &SimCLR + AAT[18]& ECAPA-TDNN & 7.36 & - & -   \\
+        &C3-MoCo[13]& ECAPA-TDNN & 6.40 &-  & -   \\
+        &MCL-DPP[19]& ECAPA-TDNN & 2.89 & 3.17 & 6.27   \\
+        &SimCLR-SSPS[14]& ECAPA-TDNN & 2.57 &3.11  & 5.56   \\
+        \hline
+        \multirow{9}{*}{Self-distillation}
+        &DINO + Cosine loss[22]&ResNet34&  6.16 & - & -   \\
+        &DINO + Curriculum[23]&ECAPA-TDNN&  4.47 & - & -   \\
+        &CA-DINO[21]&ECAPA-TDNN& 3.59 & 3.85 &  6.92  \\
+        &RDINO[24]&ECAPA-TDNN& 3.29 & - & -   \\
+        &EBCA-DINO[25]&ECAPA-TDNN& 2.94 &2.99  &  5.14  \\
+        &DINO-SSPS[14]&ECAPA-TDNN& 2.53 &2.55  &  4.93  \\
+        &DINO + Aug[26]&ECAPA-TDNN& 2.51 &2.47  &  4.79  \\
+        &C3-DINO[13]&ECAPA-TDNN& 2.50& - &-    \\
+        \hline
+        \multirow{2}{*}{PTM}
+        &Sub-PTM[36]&WavLM\&ECAPA-TDNN& 2.55& - &-    \\
+        &HCPL(ours) & WavLM\&ECAPA-TDNN  & \textbf{2.33} & \textbf{2.37} & \textbf{4.28}   \\
+        \hline
+    \end{tabular}
+    \label{tab:single-stage comparison}
+\end{table*}
+\FloatBarrier
+
+
+
+
+Compared with existing iterative frameworks that require repeated clustering and retraining, the proposed HCPL framework reaches a superior solution with substantially lower iterative cost. This observation suggests that reliable pseudo-label initialization effectively suppresses error accumulation during iterative optimization, thereby enabling both faster convergence and improved final verification performance.
+
+Taken together, the results in Table~\ref{tab:single-stage comparison} and Table~\ref{tab:multi-stage comparison} demonstrate that the proposed framework improves unsupervised speaker verification from two complementary perspectives. First, the proposed HCPL strategy generates more reliable and less fragmented pseudo-labels, leading to stronger performance during the first training iteration. Second, the proposed reliability-aware optimization framework effectively maintains pseudo-label quality throughout iterative training, thereby reducing noisy supervision accumulation and improving convergence stability.
+
+
+\begin{table}[htbp] % table* 表示跨双栏
+    \centering
+    \caption{ Detailed results for each iteration. All metrics are reported in B/A format, where B denotes the value before online label correction and A after offline label correction.} % 表格标题
+    \setlength{\tabcolsep}{3.6pt} % 微调列间距（可选）
+    \begin{tabular}{c c c c} % 补全竖线，更规范
+        \hline
+        Method & Iter1 & Iter2 & Iter3   \\
+        \hline
+        F1-score$\uparrow$  & 0.702 / 0.719 & 0.826 / 0.865 & 0.883 / 0.907 \\  
+        NMI$\uparrow$  & 0.944 / 0.945 & 0.962 / 0.973 & 0.976 / 0.981 \\
+        Cluster-Acc$\uparrow$  & 0.683 / 0.707 & 0.868 / 0.879 & 0.916 / 0.924 \\
+        Class-Num  & 17819 / 14628 & 11501 / 9447 & 11119 / 8820 \\
+        Sample-Num  & 755517 / 991261 & 1092009 / 1049500 & 1092009 / 1068949 \\
+        \hline
+    \end{tabular}
+    \label{tab:iteration}
+\end{table}
+\FloatBarrier
+Table~\ref{tab:iteration} summarizes the evolution of pseudo-label quality during iterative optimization. As the number of iterations increases, the F1-score, NMI, and Cluster-Acc consistently improve, indicating that the model progressively learns more discriminative speaker representations while generating increasingly reliable pseudo-label assignments. Meanwhile, the number of pseudo-label classes gradually approaches the true number of speakers, suggesting that the proposed framework progressively captures the intrinsic speaker distribution of the unlabeled dataset.
+\begin{table}[htbp] % table* 表示跨双栏
+    \centering
+    \caption{Component-wise ablation results on Vox1-O in terms of EER (\%).} % 表格标题
+    \setlength{\tabcolsep}{6.5pt} % 微调列间距（可选）
+    \begin{tabular}{c c c c c c c} % 补全竖线，更规范
+        \hline
+        $L_{LNC}$ & HCF & PLM & $L_{DLNC}$  & $L_{CL}$ & $L_{HNM}$ & EER (\%)\\
+        \hline
+        $\checkmark$ & & & & & & 2.776  \\  
+        $\checkmark$ & $\checkmark$ & & & & & 2.431\\
+        $\checkmark$ & $\checkmark$  & $\checkmark$ & & & & 2.415\\
+        &$\checkmark$ & $\checkmark$  & $\checkmark$ & & & 2.384\\
+        &$\checkmark$ & $\checkmark$  & $\checkmark$ &$\checkmark$ & & 2.369\\
+        &$\checkmark$ & $\checkmark$  & $\checkmark$ & &$\checkmark$ & 2.334\\
+        \hline
+    \end{tabular}
+    \label{tab:ablation}
+\end{table}
+\FloatBarrier
+
+\subsection{Ablation Study and Contrastive Loss Analysis}
+
+To further evaluate the effectiveness of the proposed components, Table~\ref{tab:ablation} reports the ablation results of different modules in the proposed unsupervised speaker verification framework. To better isolate the influence of each strategy on pseudo-label quality and early-stage optimization, all ablation experiments were conducted after a single training iteration.
+
+The results demonstrate that each proposed component contributes consistently to performance improvement. Specifically, HCF substantially reduces EER by removing unreliable pseudo-label assignments, confirming the importance of reliable pseudo-label initialization. Furthermore, the proposed PLM strategy provides additional gains by alleviating category fragmentation and improving the consistency of pseudo-label clusters. Replacing the original $L_{\mathrm{LNC}}$ loss with the proposed $L_{\mathrm{DLNC}}$ further improves performance, demonstrating the effectiveness of reliability-aware dynamic supervision. By adaptively adjusting sample contributions according to prediction confidence, the proposed DLNC mechanism effectively suppresses noisy supervision during optimization. Moreover, incorporating contrastive learning further enhances speaker  discrimination capability. Compared with the conventional contrastive objective $L_{\mathrm{CL}}$, the proposed hard negative mining strategy $L_{\mathrm{HNM}}$ achieves superior performance, indicating that focusing optimization on acoustically confusing negative pairs improves representation discriminability more effectively.
+
+Fig.~\ref{fig:contrastive_loss} further illustrates the influence of the contrastive loss weight $\gamma$ on system performance for both $L_{\mathrm{CL}}$ and $L_{\mathrm{HNM}}$, evaluated after a single training iteration. When $\gamma=0.1$, the performance improvement is relatively limited because the contrastive objective contributes insufficient optimization gradients to effectively guide representation learning. In contrast, the best performance is achieved at $\gamma=0.2$, suggesting that this setting provides an appropriate balance between pseudo-label supervision and self-supervised contrastive learning. However, when $\gamma$ further increases to 0.5 or 1.0, system performance deteriorates significantly. This phenomenon indicates that excessively strong contrastive supervision causes the optimization process to deviate from reliable pseudo-label learning. As a result, the self-supervised objective on $U_{\mathrm{nl}}$ dominates the training process and weakens the contribution of the primary pseudo-label-driven supervision, ultimately degrading overall speaker verification performance.
+
+\begin{table*}[t] % table* 表示跨双栏
+    \centering
+    \caption{Comparison of the proposed HCPL method with representative multi-stage unsupervised speaker verification frameworks in terms of EER (\%) on the Vox1-O, Vox1-E, and Vox1-H test sets.} % 表格标题
+    \setlength{\tabcolsep}{10pt} % 微调列间距（可选）
+    \begin{tabular}{l l l l c c c c} % 补全竖线，更规范
+        \hline
+        Method & Stage I & Model & Clustering & Iter & Vox1-O & Vox1-E & Vox1-H  \\
+        \hline
+        Fully-supervised & - & WavLM\&ECAPA-TDNN& -&1   & 0.94 & 1.19 & 2.25   \\  
+        \hline
+        Duke-1[15] & SimCLR &ResNet34 &K-Means& 5   & 3.45 & 4.02 & 5.57\\ 
+        IDlab[16] & MoCo&ECAPA-TDNN &AHC & 7   & 2.10 & - & -   \\ 
+        JHU[27] & DINO&Res2Net50 &AHC & 4   & 1.89 & - & -   \\ 
+        Duke-2[17] &SimCLR& ResNet34& K-Means &4   & 1.81 & - & -   \\ 
+        LGL[18]  & SimCLR&ECAPA-TDNN &K-Means& 5   & 1.66 & 2.18 & 3.76   \\ 
+        DLG-LC[28]  & DINO &ECAPA-TDNN &K-Means& 5   & 1.47 & 1.78 & 3.19   \\ 
+        MCL-DPP[19]& SimCLR &ECAPA-TDNN &K-Means& 4   & 1.44 & 1.77 & 3.27   \\ 
+        AT + HT[29]  & DINO &ECAPA-TDNN &K-Means& 5   & 1.35 & - & -   \\ 
+        BDS-BPLC[30] & DINO &ECAPA-TDNN&K-Means& 5   & 1.33 & 1.56 & 2.78   \\ 
+        Co-Meta[20] & SimCLR &ECAPA-TDNN&K-Means& 7   & 1.27 & 1.82 & 3.31   \\ 
+        Sub-PTM[36] & WavLM & WavLM\&ECAPA-TDNN&Infomap & 5   & 1.25 & - & -   \\ 
+        IPL[65] &i-vector &MFA-Conformer&  AHC &8   & 1.06 & 2.16 & 3.61   \\ 
+        HCPL(ours) &WavLM\&UniSpeech-SAT & WavLM\&ECAPA-TDNN&Infomap& 3   & \textbf{1.01} & \textbf{1.36} & \textbf{2.53}   \\
+        \hline
+    \end{tabular}
+    \label{tab:multi-stage comparison}
+\end{table*}
+\FloatBarrier
+
+
+
+% Fig.3 provides a visual comparison of the convergence speed and performance across the different unsupervised speaker verification frameworks.
+
+
+% \begin{figure}[htbp]
+% \centering
+% \includegraphics[width=2.5in]{2-new.png}
+% \caption{\centering{EER (\%) comparison on Vox1-O set for different iterations}}
+% \label{fig_2}
+% \end{figure}
+
+
+
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=3in]{Contra_loss.png}
+\caption{\centering{Effect of contrastive loss weight $\gamma$ on Vox1-O EER after the first training iteration.}}
+\label{fig:contrastive_loss}
+\end{figure}
+\section{Conclusion}
+
+This paper presented HCPL, a reliability-aware pseudo-label learning framework for unsupervised speaker verification. Unlike conventional iterative unsupervised frameworks that heavily rely on noisy clustering assignments, the proposed method focuses on improving pseudo-label reliability throughout the entire optimization process. Specifically, a dual-PTM-based High-Confidence Pseudo-Label generation strategy was proposed to construct cleaner and less fragmented pseudo-labels during the initialization stage. By leveraging cross-model consistency and pseudo-label merging, the proposed framework effectively suppresses unreliable supervision and alleviates category fragmentation, thereby providing a more stable foundation for iterative optimization.
+
+To further improve robustness against residual noisy supervision, we introduced a Dynamic Label Noise Correction strategy together with contrastive learning based on Hard Negative Mining. The proposed optimization framework dynamically adjusts supervision according to prediction reliability while enhancing inter-speaker discrimination through acoustically challenging negative pairs. As a result, the framework is able to exploit unlabeled speech data more effectively and maintain stable optimization during iterative refinement.
+
+Experimental results on the VoxCeleb benchmarks demonstrate the effectiveness of the proposed framework. The proposed method achieves state-of-the-art performance among existing unsupervised speaker verification systems, obtaining EERs of 1.01\%, 1.36\%, and 2.53\% on Vox1-O, Vox1-E, and Vox1-H, respectively. In addition, the proposed framework converges within only three iterations, substantially reducing iterative training cost compared with previous multi-stage unsupervised approaches.
+
+Overall, this work demonstrates that pseudo-label reliability plays a fundamental role in stable and efficient unsupervised speaker verification. By jointly improving pseudo-label initialization, reliability-aware optimization, and discriminative representation learning, the proposed HCPL framework narrows the performance gap between unsupervised and fully supervised speaker verification systems while avoiding expensive manual annotation.
+
+In future work, we plan to extend the proposed framework to larger-scale and cross-lingual speaker verification scenarios, and further investigate more efficient pseudo-label refinement and self-supervised optimization strategies for low-resource and real-world acoustic environments.
+
+
+% \begin{thebibliography}{1}
+% \bibliographystyle{IEEEtran}
+\nocite{*}
+\bibliographystyle{unsrt}
+
+\bibliography{ref}
+
+% \end{thebibliography}
+
+
+% \newpage
+
+% \section{Biography Section}
+% If you have an EPS/PDF photo (graphicx package needed), extra braces are
+%  needed around the contents of the optional argument to biography to prevent
+%  the LaTeX parser from getting confused when it sees the complicated
+%  $\backslash${\tt{includegraphics}} command within an optional argument. (You can create
+%  your own custom macro containing the $\backslash${\tt{includegraphics}} command to make things
+%  simpler here.)
+ 
+% \vspace{11pt}
+
+% \bf{If you include a photo:}\vspace{-33pt}
+% \begin{IEEEbiography}[{\includegraphics[width=1in,height=1.25in,clip,keepaspectratio]{fig1}}]{Michael Shell}
+% Use $\backslash${\tt{begin\{IEEEbiography\}}} and then for the 1st argument use $\backslash${\tt{includegraphics}} to declare and link the author photo.
+% Use the author name as the 3rd argument followed by the biography text.
+% \end{IEEEbiography}
+
+% \vspace{11pt}
+
+% \bf{If you will not include a photo:}\vspace{-33pt}
+% \begin{IEEEbiographynophoto}{John Doe}
+% Use $\backslash${\tt{begin\{IEEEbiographynophoto\}}} and the author name as the argument followed by the biography text.
+% \end{IEEEbiographynophoto}
+
+
+
+
+\vfill
+
+\end{document}
+
+
