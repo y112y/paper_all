@@ -1,16 +1,16 @@
 # Fdb version 4
-["bibtex 2026.7-9-v5"] 1783869745.97115 "2026.7-9-v5.aux" "2026.7-9-v5.bbl" "2026.7-9-v5" 1783870050.51001 0
+["bibtex 2026.7-9-v5"] 1783915151.79251 "2026.7-9-v5.aux" "2026.7-9-v5.bbl" "2026.7-9-v5" 1783915246.79151 0
   "./ref.bib" 1783868254 21737 8d8ddbf6adb6903a131e09df4f38d96e ""
-  "2026.7-9-v5.aux" 1783870049 9229 7206edacedc4e49fa583c608e8a18786 "pdflatex"
-  "e:/latex/texlive/2026/texmf-dist/bibtex/bst/base/unsrt.bst" 1783839008 18030 1376b4b231b50c66211e47e42eda2875 ""
+  "2026.7-9-v5.aux" 1783915246 9649 1d5cd2c43129ddd2188322cfc751aa74 "pdflatex"
+  "e:/latex/texlive/2026/texmf-dist/bibtex/bst/ieeetran/IEEEtran.bst" 1783839535 57748 7c8250ecf02814ce6ddc0cdbb63df1dd ""
   (generated)
   "2026.7-9-v5.bbl"
   "2026.7-9-v5.blg"
   (rewritten before read)
-["pdflatex"] 1783870047.65388 "e:/研究生/论文撰写/paper_all/Agreement_Guided_Pseudo_Labeling_for_Robust_Unsupervised_Speaker_Verification/2026.7-9-v5.tex" "2026.7-9-v5.pdf" "2026.7-9-v5" 1783870050.51045 0
-  "2026.7-9-v5.aux" 1783870049 9229 7206edacedc4e49fa583c608e8a18786 "pdflatex"
-  "2026.7-9-v5.bbl" 1783869746 18337 131217641239d8935d2da86e6377761b "bibtex 2026.7-9-v5"
-  "2026.7-9-v5.tex" 1783870047 74111 b2924bc614f526103d06a1405ff2dd6e ""
+["pdflatex"] 1783915243.79791 "2026.7-9-v5.tex" "2026.7-9-v5.pdf" "2026.7-9-v5" 1783915246.79204 0
+  "2026.7-9-v5.aux" 1783915246 9649 1d5cd2c43129ddd2188322cfc751aa74 "pdflatex"
+  "2026.7-9-v5.bbl" 1783915152 18421 9aad26eddc1a70845eec7c5ea9f757b8 "bibtex 2026.7-9-v5"
+  "2026.7-9-v5.tex" 1783915226 78940 001e3af1f8c3fd7f84da79f48b91e729 ""
   "Contra_loss.png" 1783845514 573657 68dfdd05e47cf1e510c00adf531df7d7 ""
   "IEEEtran.cls" 1783845514 282108 7379a03af5f3d0dad26db23a43c3a726 ""
   "PTM_Select.png" 1783845514 832751 bb9b02ad853efc951e57c56e138e18b0 ""
@@ -113,7 +113,6 @@
   "e:/latex/texlive/2026/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1783840787 5495515 9ccb191a532b338f1be6dc1cc203c704 ""
   "e:/latex/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt" 1783840935 2286590 c219168646872d72e83a8deb0038305d ""
   "e:/latex/texlive/2026/texmf.cnf" 1783840771 713 e69b156964470283e0530f5060668171 ""
-  "e:/研究生/论文撰写/paper_all/Agreement_Guided_Pseudo_Labeling_for_Robust_Unsupervised_Speaker_Verification/2026.7-9-v5.tex" 1783870047 74111 b2924bc614f526103d06a1405ff2dd6e ""
   "farme-v3.png" 1783845514 2477806 ca02ed587a3174c2f6472263be167e3c ""
   (generated)
   "2026.7-9-v5.aux"

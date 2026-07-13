@@ -13,7 +13,6 @@
 \usepackage{cite}
 \usepackage{multirow,array}
 \usepackage{amssymb}
-\usepackage{cite}
 \makeatletter
 \newcommand{\rmnum}[1]{\romannumeral #1} % 小写罗马数字
 \newcommand{\Rmnum}[1]{\expandafter\@slowromancap\romannumeral #1@} % 大写罗马数字
@@ -25,7 +24,7 @@
 
 \begin{document}
 
-\title{Consensus-Guided Pseudo-Labeling via Heterogeneous Speech Ensembles for Robust Unsupervised Speaker Verification}
+\title{Consensus-Guided Pseudo-Labeling via Heterogeneous Speech Ensembles for Unsupervised Speaker Verification}
 
 \author{Heng Wu, Yishuang Li, Hongchen Pan, Lin Li~\IEEEmembership{Member,~IEEE}, and Qingyang Hong~\IEEEmembership{Member,~IEEE}
         % <-this % stops a space
@@ -34,8 +33,8 @@
 }
 
 % The paper headers
-\markboth{IEEE TRANSACTIONS ON AUDIO, SPEECH, AND LANGUAGE PROCESSING,,~Vol.~1, No.~1, January ~2025}%
-{Shell \MakeLowercase{\textit{et al.}}: A Sample Article Using IEEEtran.cls for IEEE Journals}
+\markboth{IEEE/ACM Transactions on Audio, Speech, and Language Processing}%
+{Wu \MakeLowercase{\textit{et al.}}: Consensus-Guided Pseudo-Labeling for Unsupervised Speaker Verification}
 
 %\IEEEpubid{0000--0000/00\$00.00~\copyright~2021 IEEE}
 % Remember, if you use this you must call \IEEEpubidadjcol in the second
@@ -44,17 +43,26 @@
 \maketitle
 
 \begin{abstract}
-Unsupervised speaker verification aims to learn speaker-discriminative representations from unlabeled speech, but iterative pseudo-label training is vulnerable to early clustering errors. Pseudo-label ambiguity and speaker-cluster over-segmentation may introduce unreliable supervision and propagate errors across refinement iterations.
-In this paper, we propose a consensus-guided pseudo-labeling (CGPL) framework for robust unsupervised speaker verification. From an ensemble-learning perspective, two heterogeneous speech pre-trained models serve as complementary ensemble members and produce two clustering partitions. After cluster-label alignment, cross-model assignment agreement provides an observable consensus signal for selecting pseudo-labeled samples, followed by pseudo-label merging to reduce over-segmentation among highly similar speaker clusters. For model training, selected pseudo-labels are optimized with dynamic label-noise-aware supervision, which uses model predictions as confidence-weighted auxiliary targets rather than replacing the original pseudo-labels. Samples without cross-model consensus are further exploited by self-supervised contrastive learning with hard negative mining.
-Experiments on VoxCeleb2 show that the proposed
-framework achieves EERs of 1.01\%, 1.36\%, and 2.53\% on Vox1-O,
-Vox1-E, and Vox1-H after three refinement iterations, respectively.
-Compared with representative state-of-the-art unsupervised speaker verification systems, the proposed framework
-achieves lower EERs with fewer
-refinement iterations. Notably, the proposed unsupervised
-system obtains performance comparable to the fully supervised system
-with the same speaker encoder backbone, without using speaker identity
-annotations during training.
+Unsupervised speaker verification aims to learn speaker-discriminative
+representations from unlabeled speech, but early clustering errors can be
+reinforced by iterative pseudo-label training. We propose
+consensus-guided pseudo-labeling (CGPL), which treats two heterogeneous
+speech pre-trained models as ensemble members and uses their aligned
+clustering agreement as an observable signal of assignment stability.
+Agreement is not assumed to guarantee label correctness. Instead, it is
+used to select an initial pseudo-labeled subset, after which highly similar
+clusters are merged to reduce over-segmentation. The selected samples are
+optimized with dynamic label-noise-aware supervision, whereas samples
+without cross-model consensus contribute through self-supervised
+contrastive learning with hard negative mining. On VoxCeleb2, the initial
+selection retains 69.19\% of the utterances and increases pseudo-label F1
+from 0.555 and 0.478 for the two input partitions to 0.692. After three
+training iterations, CGPL obtains EERs of 1.01\%, 1.36\%, and 2.53\% on
+Vox1-O, Vox1-E, and Vox1-H, respectively. Speaker identities are excluded
+from pseudo-label construction and gradient-based optimization; they are
+used only for offline configuration analysis and result reporting. The
+findings therefore support cross-model consensus as a practical
+pseudo-label selection signal within the evaluated VoxCeleb protocol.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -100,10 +108,9 @@ Moreover, utterances from the same speaker may be divided into multiple
 pseudo-label classes, resulting in speaker-cluster over-segmentation.
 When these imperfect pseudo-labels are directly used for model
 optimization, the introduced errors may be propagated and amplified
-during subsequent refinement iterations. Therefore, improving the
-quality of pseudo-label supervision and reducing the influence of
-residual label noise are critical for achieving robust unsupervised
-speaker verification.
+during subsequent refinement iterations. Therefore, improving pseudo-label
+supervision and reducing the influence of residual label noise are important
+for stable iterative unsupervised speaker verification.
 
 Previous studies have attempted to address pseudo-label-related
 challenges from different perspectives. Speech self-supervised
@@ -126,12 +133,12 @@ are often discarded, while the remaining pseudo-labels may still
 contain residual errors.
 
 To address these limitations, we propose a Consensus-Guided
-Pseudo-Labeling framework, termed CGPL, for robust unsupervised
+Pseudo-Labeling framework, termed CGPL, for iterative unsupervised
 speaker verification. CGPL formulates initial pseudo-label generation as
 heterogeneous ensemble inference: two speech pre-trained models act as
 complementary ensemble members, and their aligned clustering assignments
-provide an explicit consensus signal. The framework improves the
-reliability of pseudo-label supervision while utilizing both
+provide an observable signal of cross-model assignment stability. The framework is designed to improve
+pseudo-label supervision while utilizing both
 consensus-selected and cross-view-disagreement samples in a unified
 noise-robust training pipeline. Specifically, CGPL uses cross-model
 clustering agreement to identify reliable pseudo-labels, introduces
@@ -143,9 +150,9 @@ contributions of this work are summarized as follows:
 \begin{itemize}
     \item We formulate initial pseudo-label generation from a heterogeneous
     ensemble-learning perspective and propose a consensus-guided
-    pseudo-labeling framework for robust unsupervised speaker verification.
+    pseudo-labeling framework for iterative unsupervised speaker verification.
     Cross-model assignment agreement is used as an explicit and operational
-    reliability criterion for pseudo-label selection.
+    stability criterion for pseudo-label selection.
 
     \item We develop a reliability-aware pseudo-label construction strategy
     that combines consensus-guided sample selection and pseudo-label merging
@@ -158,11 +165,11 @@ contributions of this work are summarized as follows:
     further exploited through self-supervised contrastive learning with hard
     negative mining.
 
-    \item Extensive experiments on VoxCeleb benchmarks demonstrate that the
-    proposed framework improves pseudo-label quality and speaker verification
-    performance, achieving competitive results with fewer refinement
-    iterations compared with representative unsupervised speaker verification
-    methods.
+    \item Experiments on the VoxCeleb benchmarks show that the selected
+    subset has higher initial pseudo-label quality than either input
+    partition and that the complete framework achieves competitive
+    verification performance after three training iterations under the
+    reported configuration.
 \end{itemize}
 
 
@@ -171,8 +178,9 @@ Section~II reviews related work on unsupervised speaker verification and noise-r
 Section~III formulates the problem of reliability-aware unsupervised speaker verification and provides an overview of the proposed CGPL framework.
 Section~IV presents the proposed consensus-guided pseudo-label construction procedure, including cross-model agreement-based sample selection and pseudo-label merging.
 Section~V describes the noise-robust utilization of consensus-selected and cross-view-disagreement samples, where selected pseudo-labeled samples are optimized with dynamic label-noise-aware supervision and the remaining samples are exploited through self-supervised contrastive learning.
-Section~VI reports the experimental results and analyses, including the main comparison results, pseudo-label quality analysis, ablation studies, iterative refinement behavior, sensitivity analysis, and complexity analysis.
-Finally, Section~VII concludes this paper.
+Section~VI describes the experimental setup and evaluation protocol.
+Section~VII reports the main comparisons, pseudo-label quality analysis, ablation studies, and iterative behavior.
+Section~VIII discusses the interpretation and limitations of the evidence, and Section~IX concludes the paper.
 
 \section{Related Work}
 
@@ -372,7 +380,7 @@ In the second stage, the selected reliable samples are used for pseudo-label-gui
 
 Cross-view-disagreement samples are not discarded. Instead, they are utilized for self-supervised contrastive learning. Positive pairs are generated from different segments of the same utterance, whereas hard negatives are mined from other utterances within the same mini-batch.
 
-Overall, the proposed framework partitions unlabeled data according to cross-model support for their pseudo-labels and assigns dedicated learning objectives to consensus-selected and cross-view-disagreement samples, enabling more robust representation learning under noisy pseudo-label supervision.
+Overall, the proposed framework partitions unlabeled data according to cross-model support for their pseudo-labels and assigns dedicated learning objectives to consensus-selected and cross-view-disagreement samples. This design limits hard pseudo-label supervision to cross-model-consistent assignments while retaining the remaining samples for label-free representation learning.
 
 \subsection{Base Iterative Learning Pipeline}
 
@@ -790,8 +798,9 @@ Since $\lambda_i$ is small for unstable training stages or low-margin prediction
 
 \FOR{$k=2$ to $K$}
 
-\STATE Generate pseudo-labels $\hat{Y}^{(k)}$
-using the previous model $f_{\theta}^{(k-1)}$
+    \STATE Generate pseudo-labels $\hat{Y}^{(k)}$ from
+    $f_{\theta}^{(k-1)}$ using the segment-level modal-prediction and
+    majority-acceptance rule in Section~III-C
 
 \STATE Train $f_{\theta}^{(k)}$ on
 $(U_0,\hat{Y}^{(k)})$ with $\mathcal{L}_{\mathrm{DLNAS}}$
@@ -804,6 +813,16 @@ $(U_0,\hat{Y}^{(k)})$ with $\mathcal{L}_{\mathrm{DLNAS}}$
 
 \end{algorithmic}
 \end{algorithm}
+
+In Algorithm~\ref{alg:alg2}, the consensus-guided initialization and the
+optimization of $f_{\theta}^{(1)}$ constitute the first training iteration.
+Iterations $k\geq2$ are subsequent refinement iterations based on the
+previous encoder. The HNM objective is applied to $U_d^{(1)}$ during the
+first iteration; the subsequent loop uses the accepted pseudo-labels and the
+DLNAS objective. We use
+\emph{training iteration} when referring to all three rounds and reserve
+\emph{refinement iteration} for rounds after the consensus-guided
+initialization.
 
 
 \subsection{Contrastive Learning with Hard Negative Mining}
@@ -913,6 +932,10 @@ larger separation between positive and difficult negative pairs.
 Since the cross-view-disagreement subset does not provide consensus-supported speaker labels,
 HNM is used as an auxiliary self-supervised objective rather than a
 replacement for pseudo-label supervision.
+Because speaker identities are unavailable during optimization, an
+utterance selected as a negative can in principle originate from the same
+speaker as the anchor. The small HNM mini-batch reduces the chance of such
+collisions but cannot eliminate this false-negative failure mode.
 
 The final optimization objective combines reliable pseudo-label
 supervision and representation learning on cross-view-disagreement samples:
@@ -966,12 +989,6 @@ contains two stages:
     stage to stabilize joint optimization.
 \end{enumerate}
 
-% The PLM scaling coefficient is fixed to $\mu=0.97$ in all
-% experiments and remains unchanged throughout training. The EMA
-% momentum in DLNAS is set to $v=[VALUE]$, and the remaining
-% AAM-Softmax parameters are set to $s=[VALUE]$ and
-% $\alpha=[VALUE]$.
-
 For contrastive learning with hard negative mining, the mini-batch
 size is set to 16. The relatively small batch size is intended to
 reduce, although not completely eliminate, the probability that
@@ -980,6 +997,30 @@ and are incorrectly treated as negative pairs. The margin parameter
 in $\mathcal{L}_{\mathrm{HNM}}$ is fixed to 0.2. During inference,
 cosine similarity scoring is used without additional score
 normalization.
+
+\subsection{Evaluation Protocol and Claim Scope}
+\label{sec:evaluation_scope}
+
+Speaker identities play different roles in optimization and offline
+analysis. They are not used to construct the CGS agreement indicator,
+merge pseudo-labels, define the DLNAS or HNM objectives, or update model
+parameters. They are, however, used in two offline analyses: Vox1-O EER is
+used to characterize the PTM layers and the contrastive-loss weight, and
+VoxCeleb2 identities are used to compare clustering configurations and to
+report pseudo-label quality. Consequently, the reported protocol supports
+\emph{label-free pseudo-label construction and model optimization}, but it
+should not be interpreted as fully label-free system development. In
+particular, Vox1-O is development-informed rather than an untouched test
+set. Vox1-E and Vox1-H are not used directly for configuration selection,
+although they belong to the same benchmark family.
+
+All EER and ablation entries are point estimates from the reported runs;
+repeated-run uncertainty and minDCF are not available in the current
+experimental record. We therefore interpret small component-wise EER
+differences as observed changes under this configuration rather than as
+evidence of statistical significance. Comparisons with published systems
+are also descriptive because the systems differ in pre-training resources,
+backbones, clustering procedures, and total computation.
 \begin{figure}[!t]
 \centering
 \includegraphics[width=3.5in]{PTM_Select.png}
@@ -993,19 +1034,19 @@ This section evaluates the proposed framework from both speaker verification per
 In addition to the main EER comparisons, we analyze pseudo-label quality, the influence of cross-model agreement, and the iterative refinement process.
 These analyses aim to provide a comprehensive understanding of the proposed consensus-guided pseudo-labeling framework.
 
-\subsection{Ensemble Member Configuration}
+\subsection{Offline Ensemble Member Configuration Analysis}
 
 Speaker-related information is unevenly distributed across the Transformer layers of speech pre-trained models.
-To instantiate the heterogeneous ensemble, we conduct a layer-wise evaluation on the Vox1-O test set to characterize the speaker-discrimination capability of candidate representations.
+To instantiate the heterogeneous ensemble, we conduct a layer-wise evaluation on Vox1-O to characterize the speaker-discrimination capability of candidate representations.
 A lower EER indicates that the corresponding layer contains more speaker-discriminative information.
 
 As shown in Fig.~\ref{fig:Transformer_layers}, WavLM achieves lower EERs than the other evaluated PTMs across most Transformer layers.
 In particular, the 11th layer of WavLM provides the best verification performance, while the 9th layer of UniSpeech-SAT achieves the second-best result.
-These two representations are used as the ensemble members for initial pseudo-label generation.
+These two representations are used as the ensemble members for initial pseudo-label generation. As stated in Section~\ref{sec:evaluation_scope}, this use of Vox1-O makes its reported EER development-informed.
 
 Besides their individual verification performance, WavLM and UniSpeech-SAT are trained with different pre-training objectives, which may lead to different representation spaces and clustering behaviors. The reported configuration therefore provides both member competence and representation diversity, two properties commonly associated with effective heterogeneous ensembles.
 
-\subsection{Clustering Analysis}
+\subsection{Offline Clustering Configuration Analysis}
 To select an appropriate clustering algorithm for initial pseudo-label
 generation, we evaluate K-means, Agglomerative Hierarchical
 Clustering (AHC) [63], Leiden [64], and Infomap on
@@ -1031,7 +1072,7 @@ discrimination in the preceding layer-wise analysis.
         & K-means  & 0.287 & 0.200 & 0.236  & 0.651  \\ 
         & AHC  & 0.442 & 0.347 & 0.389  & 0.787  \\
         & Leiden  & \textbf{0.901} & 0.173 & 0.291  & 0.861  \\
-        & Infomap  & 0.697 & \textbf{0.364} & \textbf{0.579}&\textbf{0.872}  \\
+        & Infomap  & 0.697 & \textbf{0.364} & \textbf{0.478}&\textbf{0.872}  \\
         \hline
     \end{tabular}
     \label{tab:clustering}
@@ -1042,12 +1083,15 @@ This setting is only used for algorithm comparison, since these two
 methods require a predefined number of clusters.
 In contrast, Infomap and Leiden determine the cluster structures
 without using the ground-truth speaker count.
-The ground-truth speaker identities are used only for offline
-evaluation and are not involved in pseudo-label generation or model
-optimization.
+The ground-truth speaker identities are used for this offline configuration
+comparison but are not input to pseudo-label generation or model
+optimization. Thus, the selection of Infomap is label-informed even though
+the subsequent clustering operation itself does not use speaker identities.
 
 Clustering performance is evaluated using Precision, Recall, F1-score,
-and Normalized Mutual Information (NMI).
+and Normalized Mutual Information (NMI), with
+$\mathrm{F1}=2\,\mathrm{Precision}\,\mathrm{Recall}/
+(\mathrm{Precision}+\mathrm{Recall})$.
 As shown in Table~\ref{tab:clustering}, Leiden achieves the highest
 precision for both PTM feature sets, indicating that it produces highly
 compact clusters.
@@ -1062,13 +1106,20 @@ construction.
 \subsection{First-Round Pseudo-Label Analysis}
 \label{sec:first_round_analysis}
 
-To provide a comprehensive evaluation of the initial pseudo-label quality, we additionally report Clustering Accuracy ($A_c$) and Purity. Clustering Accuracy measures the maximum sample-level agreement between pseudo-label assignments and reference labels after optimal label alignment, whereas Purity measures the average internal label consistency of individual pseudo-label clusters. The reference labels are used only for offline evaluation and are not involved in pseudo-label generation or model optimization.
+To characterize the initial pseudo-label partitions, we additionally report
+Clustering Accuracy ($A_c$) and macro-averaged cluster Purity. Clustering
+Accuracy measures the maximum sample-level agreement between pseudo-label
+assignments and reference labels after optimal label alignment. Purity
+measures internal label consistency while assigning equal weight to each
+pseudo-label cluster, irrespective of cluster size. These metrics use
+reference identities for offline analysis; the identities are not input to
+pseudo-label generation or model optimization.
 
 
 The Clustering Accuracy $A_c$ is defined as \begin{equation} A_c = \frac{ \max\limits_{\pi} \sum_{(i,j)\in\pi} C(i,j) }{M}, \end{equation} where $C(i,j)$ denotes the number of samples shared by the $i$-th pseudo-label cluster and the $j$-th reference label class, $\pi$ denotes a feasible one-to-one mapping between pseudo-label clusters and reference label classes, and $M$ denotes the total number of evaluated samples. The optimal mapping is obtained using the Hungarian algorithm [55].
 
 
-Purity is defined as \begin{equation} \mathrm{Purity} = \frac{1}{N_c} \sum_{i=1}^{N_c} \frac{\max_j C(i,j)} {\sum_j C(i,j)}, \end{equation} where $N_c$ denotes the number of pseudo-label clusters. For each pseudo-label cluster, the proportion of samples associated with its most frequent reference label is first computed, and the resulting cluster-wise purities are then averaged over all clusters. A higher Purity indicates greater average label consistency within individual pseudo-label clusters.
+Purity is defined as \begin{equation} \mathrm{Purity} = \frac{1}{N_c} \sum_{i=1}^{N_c} \frac{\max_j C(i,j)} {\sum_j C(i,j)}, \end{equation} where $N_c$ denotes the number of pseudo-label clusters. For each pseudo-label cluster, the proportion of samples associated with its most frequent reference label is first computed, and the resulting cluster-wise purities are then averaged over all clusters. A higher Purity indicates greater average label consistency within individual pseudo-label clusters. Because this definition is macro-averaged, it is sensitive to the number and size distribution of clusters and should be interpreted together with $N_c$ and $N_s$.
 
 
 
@@ -1112,7 +1163,7 @@ Using Infomap clustering, two initial pseudo-label partitions, denoted as $Y_A$ 
 \end{table*}
 \FloatBarrier 
 
-As summarized in Table~\ref{tab:first_round_metrics}, the agreement-based selection retains 755,517 out of 1,092,009 training utterances, corresponding to a sample retention rate of 69.19\%. Compared with the two original pseudo-label partitions, $Y_r$ achieves consistently better clustering metrics. Specifically, the F1-score increases from 0.555 and 0.479 to 0.692, the NMI from 0.871 and 0.872 to 0.942, and $A_c$ from 0.569 and 0.519 to 0.677 relative to $Y_A$ and $Y_B$, respectively. In addition, the Purity increases from 0.784 and 0.708 to 0.939, indicating that the selected clusters exhibit substantially higher internal label consistency. These results support the use of cross-model agreement for constructing a higher-quality pseudo-label subset at the initial training stage.
+As summarized in Table~\ref{tab:first_round_metrics}, the agreement-based selection retains 755,517 out of 1,092,009 training utterances, corresponding to a sample retention rate of 69.19\%. On this selected subset, $Y_r$ has higher clustering metrics than either full input partition. Specifically, the F1-score increases from 0.555 and 0.478 to 0.692, the NMI from 0.871 and 0.872 to 0.942, and $A_c$ from 0.569 and 0.519 to 0.677 relative to $Y_A$ and $Y_B$, respectively. Purity increases from 0.784 and 0.708 to 0.939. These observations show that cross-model agreement identifies a subset with greater reference-label consistency. Because the compared partitions have different sample coverage, the analysis does not isolate agreement from the general effect of selecting an easier subset and is not a coverage-matched comparison against alternative selection criteria.
 
 Pseudo-label merging is subsequently applied to $Y_r$, resulting in the merged pseudo-label set $\tilde{Y}_r$. Compared with $Y_r$, $\tilde{Y}_r$ further improves the F1-score from 0.692 to 0.702, the NMI from 0.942 to 0.944, $A_c$ from 0.677 to 0.683, and Purity from 0.939 to 0.941. Meanwhile, the number of pseudo-label classes ($N_c$) decreases from 18,180 to 17,819, while the number of retained samples ($N_s$) remains unchanged. The reduction in pseudo-label classes together with the improvement in clustering metrics suggests that pseudo-label merging can alleviate cluster fragmentation without degrading cluster-level consistency.
 
@@ -1138,7 +1189,7 @@ Based on the above analysis, $\tilde{Y}_r$ is adopted as the initial pseudo-labe
         & 1092009 \\
 
         $Y_B$ 
-        & 0.479 
+        & 0.478
         & 0.872 
         & 0.519 
         & 0.708 
@@ -1173,22 +1224,22 @@ framework with representative single-stage unsupervised speaker
 verification methods.
 After the first training iteration, CGPL achieves EERs of 2.33\%,
 2.37\%, and 4.28\% on Vox1-O, Vox1-E, and Vox1-H, respectively,
-outperforming all compared single-stage approaches under the three
-evaluation protocols.
-These results demonstrate the effectiveness of the proposed
-consensus-guided pseudo-label construction and reliability-aware
-training strategy for initial model optimization.
+which are the lowest values in Table~\ref{tab:single-stage comparison}.
+Because the published systems differ in backbone, pre-training resources,
+and optimization protocol, the table provides a descriptive comparison
+rather than a controlled ranking. Within the reported configuration, the
+results are consistent with effective initial optimization using the
+proposed pseudo-label construction and sample-specific objectives.
 
 The performance improvement is consistently observed across Vox1-O,
 Vox1-E, and Vox1-H.
 Compared with Vox1-O, Vox1-E and Vox1-H introduce more challenging
 verification conditions with a larger number of trials and more
 confusable speaker pairs.
-The consistent EER reduction across these protocols indicates that the
-proposed framework improves speaker representation learning under
-different verification difficulties.
-However, these observations are limited to the VoxCeleb benchmarks
-considered in this study.
+The low EERs across these protocols indicate that the learned
+representations remain effective as the VoxCeleb1 trial lists become more
+challenging. They do not, however, establish robustness to a new corpus,
+language, or acoustic domain.
 
 The strong first-round performance is consistent with the pseudo-label
 quality analysis in Table~\ref{tab:first_round_metrics}.
@@ -1196,7 +1247,7 @@ By selecting samples with consistent cross-model assignments and further
 applying pseudo-label merging, the proposed framework
 provides a cleaner initial supervision set for speaker encoder
 optimization.
-The remaining pseudo-label noise is further handled by the proposed
+The remaining pseudo-label noise is addressed by the proposed
 DLNAS objective, while cross-view-disagreement samples continue to contribute through
 the self-supervised contrastive learning objective with hard negative
 mining.
@@ -1204,15 +1255,13 @@ mining.
 Table~\ref{tab:multi-stage comparison} compares the proposed CGPL
 framework with representative iterative unsupervised speaker
 verification methods.
-After three refinement iterations, CGPL achieves EERs of 1.01\%,
+After three training iterations, CGPL achieves EERs of 1.01\%,
 1.36\%, and 2.53\% on Vox1-O, Vox1-E, and Vox1-H, respectively,
-obtaining the best performance among the compared unsupervised
-approaches.
+which are the lowest values among the systems listed in the table.
 
-Compared with previous multi-stage methods, the proposed framework
-requires only three refinement iterations to reach its best reported
-performance.
-This improvement suggests that a more reliable initial pseudo-label
+Compared with the iteration counts reported for the other multi-stage
+methods, CGPL reaches its best reported values after three training
+iterations. The observed progression suggests that a higher-consistency initial pseudo-label
 construction can facilitate subsequent representation refinement and
 reduce the influence of noisy supervision during iterative training.
 
@@ -1267,17 +1316,16 @@ unsupervised speaker verification.
 
 Table~\ref{tab:iteration} summarizes the evolution of pseudo-label
 quality and training data coverage during iterative optimization.
-Across the three refinement iterations, F1-score, NMI, $A_c$, and
+Across the three training iterations, F1-score, NMI, $A_c$, and
 Purity consistently improve, indicating that the pseudo-label
 assignments become progressively more consistent with the underlying
 speaker structure while also exhibiting higher internal label
 consistency. These improvements are observed both before and after
-offline pseudo-label refinement, demonstrating that the proposed
-framework continuously enhances pseudo-label quality throughout
-iterative training.
+offline pseudo-label refinement and document the evolution of the
+pseudo-label sets throughout iterative training.
 \begin{table}[!t] % table* 表示跨双栏
     \centering
-    \caption{Detailed results for each iteration. All metrics are reported in B/A format, where B denotes the value before online pseudo-label refinement and A after offline pseudo-label refinement.} % 表格标题
+    \caption{Detailed results for each training iteration. Metrics are reported in B/A format, where B denotes the pseudo-label set before and A denotes the set after the offline segment-level modal-prediction refinement described in Section~III-C.} % 表格标题
     \setlength{\tabcolsep}{3.6pt} % 微调列间距（可选）
     \begin{tabular}{c c c c} % 补全竖线，更规范
         \hline
@@ -1323,10 +1371,10 @@ does not prevent effective speaker representation learning.
 
 The improvement becomes smaller in later iterations, indicating that
 the pseudo-label assignments and speaker representations gradually
-approach a more stable state. Overall, the iterative results
-demonstrate that consensus-guided initialization provides a reliable
-starting point for pseudo-label refinement and facilitates stable
-unsupervised speaker verification training.
+approach a more stable state. Overall, the iterative results are
+consistent with consensus-guided initialization providing a useful
+starting point for subsequent pseudo-label refinement in the evaluated
+VoxCeleb setting.
 
 
 
@@ -1339,9 +1387,11 @@ after the first training iteration.
 All variants are evaluated under the same training condition to
 analyze the contribution of each component before iterative
 pseudo-label refinement.
-The progressive reduction in EER demonstrates that the proposed
-framework benefits from the combination of reliable pseudo-label
-construction and noise-robust representation learning.
+The progressive reduction in the reported EER is consistent with
+complementary contributions from pseudo-label construction and the two
+training objectives. As noted in Section~\ref{sec:evaluation_scope}, these
+point estimates do not establish statistical significance for the smaller
+component-wise differences.
 
 Starting from the baseline pseudo-label supervised training,
 consensus-based sample selection provides a substantial performance
@@ -1373,28 +1423,31 @@ selection.
 \FloatBarrier
 
 
-Replacing the conventional pseudo-label objective with DLNAS further
-improves verification performance.
-This improvement indicates that the prediction-guided auxiliary
-supervision introduced by DLNAS can alleviate the influence of residual
-pseudo-label errors while maintaining the original pseudo-label as the
-primary supervision target.
+Replacing the conventional pseudo-label objective with DLNAS reduces the
+reported EER from 2.415\% to 2.384\%. This observation is consistent with
+the prediction-guided auxiliary term changing the contribution of samples
+under residual pseudo-label noise while retaining the original pseudo-label
+as the primary target. The ablation does not by itself determine whether
+the gain arises from noise mitigation, confidence-based reweighting, or
+another optimization effect.
 
-The two contrastive learning components further improve performance,
-showing that the samples excluded from pseudo-label supervision still
-contain useful speaker-related information.
+The two contrastive learning variants further reduce the reported EER,
+showing that the samples excluded from pseudo-label supervision can
+contribute useful training signals under the evaluated configuration.
 Compared with the standard contrastive objective, HNM achieves a lower
 EER, suggesting that emphasizing acoustically challenging negative
 pairs provides additional discriminative information for speaker
 representation learning.
 
-Overall, the ablation results demonstrate that the proposed components
+Overall, the ablation results indicate that the proposed components
 address different aspects of unsupervised speaker verification.
 Consensus-based selection and pseudo-label merging improve the quality
 of pseudo-label supervision, while DLNAS and HNM enhance robustness
 during model optimization.
-Their complementary effects contribute to the final verification
-performance.
+Their observed effects are complementary in the sequential ablation, but
+the small differences for PLM, DLNAS, and conventional contrastive learning
+should be interpreted cautiously in the absence of repeated-run
+uncertainty.
 
 
 
@@ -1419,9 +1472,9 @@ performance for both contrastive objectives, possibly because the
 contrastive objective begins to dominate the optimization and reduces
 the relative contribution of reliable pseudo-label supervision.
 
-These results demonstrate that both the contrastive objective design
-and its weighting strategy affect the utilization of cross-view-disagreement
-samples.
+These results show that both the contrastive objective design
+and its weighting strategy are associated with the utilization of cross-view-disagreement
+samples under the reported Vox1-O-informed configuration.
 
 \begin{figure}[!t]
 \centering
@@ -1430,46 +1483,73 @@ samples.
 \label{fig:contrastive_loss}
 \end{figure}
 
+\section{Discussion and Limitations}
+
+The central observation of this study is that agreement between two aligned
+PTM-based clustering partitions identifies an initial subset with greater
+reference-label consistency than either full input partition. This result
+supports cross-model assignment stability as a practical signal when
+ground-truth labels cannot be used during optimization. The verification
+results and sequential ablation further show that the complete pipeline can
+use this subset to initialize iterative training while retaining the
+cross-view-disagreement samples through a label-free auxiliary objective.
+
+The pseudo-label analysis does not, however, establish that agreement is
+uniquely responsible for the higher clustering metrics. CGS retains 69.19\%
+of the training utterances, whereas the two input partitions cover the full
+corpus. The observed difference may therefore reflect both the consensus
+criterion and the more general effect of selecting an easier subset. In the
+same way, the sequential ablation associates PLM, DLNAS, and HNM with lower
+point-estimate EERs but does not isolate every mechanism. In particular, the
+DLNAS result is consistent with both residual-noise mitigation and
+confidence-dependent sample reweighting.
+
+The experimental protocol imposes additional boundaries. Vox1-O informed
+the PTM-layer and contrastive-weight analyses, and VoxCeleb2 identities
+informed the offline clustering comparison. The reported study therefore
+evaluates label-free pseudo-label construction and gradient optimization,
+not a fully label-free model-selection pipeline. Moreover, the comparison
+systems use different backbones, pre-training resources, and iteration
+budgets, and the present results do not include repeated-run uncertainty,
+minDCF, or total computational cost. These factors limit claims about
+statistical significance, controlled state-of-the-art performance, and
+efficiency.
+
+CGPL also inherits several methodological limitations. One-to-one Hungarian
+alignment may reject potentially compatible clusters when the two
+partitions have different granularities. The relative PLM threshold depends
+on the maximum observed inter-cluster similarity and may therefore be
+sensitive to an atypical cluster pair. Finally, HNM cannot identify
+same-speaker utterances without labels and may select them as false
+negatives. Because all reported training and evaluation data belong to the
+VoxCeleb benchmark family, the findings should not be extrapolated to
+cross-lingual, cross-corpus, or strongly shifted acoustic conditions without
+additional evaluation.
+
 \section{Conclusion}
 
-This paper investigated the problem of unreliable pseudo-label supervision
-in iterative unsupervised speaker verification and proposed a
-Consensus-Guided Pseudo-Labeling (CGPL) framework based on a heterogeneous
-PTM ensemble to improve the quality and
-utilization of pseudo-label supervision. The proposed framework establishes
-a reliability-aware learning pipeline by identifying more reliable
-pseudo-labels, alleviating speaker-cluster over-segmentation, reducing the
-impact of residual label noise, and exploiting cross-view-disagreement samples during
-model optimization. Through the joint consideration of pseudo-label
-construction and sample utilization, CGPL provides a unified solution for
-robust iterative unsupervised speaker verification.
+This paper presented CGPL, a heterogeneous-ensemble framework that uses
+aligned clustering agreement to select initial pseudo-labels and assigns
+different objectives to consensus-selected and cross-view-disagreement
+samples. On VoxCeleb2, the selected subset retained 69.19\% of the
+utterances and had higher pseudo-label consistency than either input
+partition. After three training iterations, the resulting system achieved
+EERs of 1.01\%, 1.36\%, and 2.53\% on Vox1-O, Vox1-E, and Vox1-H,
+respectively.
 
-Experimental results on the VoxCeleb benchmarks demonstrate that the
-proposed framework consistently improves speaker verification performance
-and achieves competitive results with fewer refinement iterations compared
-with representative unsupervised approaches. Further analyses show that
-improving pseudo-label quality in the early stage of iterative learning
-provides more reliable supervision for subsequent model refinement and
-facilitates more effective speaker representation learning. These results
-highlight the importance of supervision quality, in addition to
-representation learning capability, for iterative unsupervised speaker
-verification.
+Within the reported protocol, these findings support cross-model agreement
+as an operational signal for initializing iterative unsupervised speaker
+verification. This conclusion is limited to label-free pseudo-label
+construction and model optimization in the VoxCeleb setting; configuration
+selection used offline label-informed analyses, and cross-domain behavior
+was not evaluated. Future work should test consensus-guided selection under
+independent development protocols and distribution shifts, and should
+examine alignment granularity, false negatives, and computational cost.
 
-Future work will investigate the applicability of the proposed framework to
-more challenging scenarios, such as cross-lingual and cross-domain speaker
-verification, where pseudo-label generation may be affected by distribution
-shifts. In addition, adaptive pseudo-label refinement strategies and more
-efficient self-supervised optimization approaches will be explored to further
-improve robustness in large-scale and low-resource acoustic environments.
-
-% \begin{thebibliography}{1}
-% \bibliographystyle{IEEEtran}
 \nocite{*}
-\bibliographystyle{unsrt}
+\bibliographystyle{IEEEtran}
 
 \bibliography{ref}
-
-% \end{thebibliography}
 
 
 % \newpage

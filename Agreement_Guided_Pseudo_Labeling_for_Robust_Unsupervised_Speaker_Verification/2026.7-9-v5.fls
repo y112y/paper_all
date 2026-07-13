@@ -1,8 +1,8 @@
-PWD e:/研究生/论文撰写/paper_all/Agreement_Guided_Pseudo_Labeling_for_Robust_Unsupervised_Speaker_Verification
+PWD E:/研究生/论文撰写/paper_all/Agreement_Guided_Pseudo_Labeling_for_Robust_Unsupervised_Speaker_Verification
 INPUT e:/latex/texlive/2026/texmf.cnf
 INPUT e:/latex/texlive/2026/texmf-dist/web2c/texmf.cnf
 INPUT e:/latex/texlive/2026/texmf-var/web2c/pdftex/pdflatex.fmt
-INPUT e:/研究生/论文撰写/paper_all/Agreement_Guided_Pseudo_Labeling_for_Robust_Unsupervised_Speaker_Verification/2026.7-9-v5.tex
+INPUT 2026.7-9-v5.tex
 OUTPUT 2026.7-9-v5.log
 INPUT ./IEEEtran.cls
 INPUT IEEEtran.cls
